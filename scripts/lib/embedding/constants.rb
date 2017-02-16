@@ -6,4 +6,6 @@ module Embedding
    # These are often used as extensions to the embedding files.
    PROB_METHOD_UNIF = 'unif'
    PROB_METHOD_BERN = 'bern'
+
+   CODE_PATH = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', '..', 'KB2E', 'code'))
 end

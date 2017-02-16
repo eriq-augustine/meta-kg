@@ -1,6 +1,9 @@
 require_relative '../../lib/constants'
 require_relative '../../lib/distance'
+require_relative '../../lib/histogram'
+require_relative '../../lib/load'
 require_relative '../../lib/embedding/energies'
+require_relative '../../lib/embedding/load'
 require_relative '../../lib/nelle/load'
 
 require 'date'
@@ -35,7 +38,7 @@ def writeEvalData(sourceDir, datasetDir, embeddingDir, embeddingMethod, distance
    }
 
    # Get all the uinque entities and relations.
-   allTriples = NellELoad.allTriples(sourceDir)
+   allTriples, _ = NellELoad.allTriples(sourceDir)
 
    entities = []
    entities += allTriples.map{|triple| triple[0]}
@@ -45,7 +48,7 @@ def writeEvalData(sourceDir, datasetDir, embeddingDir, embeddingMethod, distance
    entityHistogram(entities)
 
    entities.uniq!()
-   entities.sort!
+   entities.sort!()
 
    # Keep track of what we see in the baseTriples (test set) and not just the entire corpus.
    relations = baseTriples.map{|triple| triple[2]}.uniq().sort()
@@ -254,7 +257,7 @@ def parseArgs(args)
       datasetDir = args.shift()
    else
       dataset = File.basename(embeddingDir).match(/^[^_]+_(\S+)_\[size:/)[1]
-      datasetDir = File.join(DATA_PATH, File.join(dataset))
+      datasetDir = File.join(Constants::RAW_DATA_PATH, File.join(dataset))
    end
 
    if (args.size() > 0)

@@ -7,8 +7,6 @@ require 'open3'
 
 SEED = 4
 
-EXPERIMENT_DIR = File.absolute_path(File.join('..', '..', 'KB2E', 'code'))
-
 COMMAND_TYPE_TRAIN = 'train'
 COMMAND_TYPE_EVAL = 'eval'
 
@@ -84,7 +82,7 @@ def train(experiment)
    puts "Training: #{getId(experiment)}"
 
    run("mkdir -p '#{outputDir}'")
-   run("cd '#{EXPERIMENT_DIR}' && #{getCommand(experiment, COMMAND_TYPE_TRAIN)}", stdoutFile, stderrFile)
+   run("cd '#{Embedding::CODE_PATH}' && #{getCommand(experiment, COMMAND_TYPE_TRAIN)}", stdoutFile, stderrFile)
 end
 
 def evaluate(experiment)
@@ -95,13 +93,13 @@ def evaluate(experiment)
 
    puts "Evaluating: #{getId(experiment)}"
 
-   run("cd '#{EXPERIMENT_DIR}' && #{getCommand(experiment, COMMAND_TYPE_EVAL)}", stdoutFile, stderrFile)
+   run("cd '#{Embedding::CODE_PATH}' && #{getCommand(experiment, COMMAND_TYPE_EVAL)}", stdoutFile, stderrFile)
 end
 
 # Do any global setup like copying data.
 def globalSetup()
    # Build
-   run("cd '#{EXPERIMENT_DIR}' && make clean && make")
+   run("cd '#{Embedding::CODE_PATH}' && make clean && make")
 end
 
 def run(command, outFile=nil, errFile=nil)
@@ -194,6 +192,8 @@ def parseArgs(args)
          experiment['args'][flag] = value
       end
    }
+
+   experiment['data'] = File.absolute_path(experiment['data'])
 
    return experiment
 end

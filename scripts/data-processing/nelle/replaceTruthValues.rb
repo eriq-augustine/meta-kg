@@ -1,5 +1,7 @@
 require_relative '../../lib/constants'
 require_relative '../../lib/embedding/energies'
+require_relative '../../lib/embedding/load'
+require_relative '../../lib/load'
 require_relative '../../lib/nelle/constants'
 require_relative '../../lib/nelle/load'
 
@@ -37,11 +39,12 @@ end
 # Returns: {'head:tail:relation' => energy, ...}
 def getEnergies(sourceDir, datasetDir, embeddingDir, embeddingMethod, distanceType)
    energyPath = File.join(embeddingDir, ENERGY_FILE)
+
    if (File.exists?(energyPath))
       return loadEnergiesFromFile(energyPath)
    end
 
-   triples = NellELoad.allTriples(sourceDir)
+   triples, _ = NellELoad.allTriples(sourceDir)
 
    # Note that the embeddings are indexed by the value in the mappings (eg. entity2id.txt).
 	entityMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), true)
@@ -140,7 +143,7 @@ def parseArgs(args)
       datasetDir = args.shift()
    else
       dataset = File.basename(embeddingDir).match(/^[^_]+_(\S+)_\[size:/)[1]
-      datasetDir = File.join(Constants::DATA_PATH, File.join(dataset))
+      datasetDir = File.join(Constants::RAW_DATA_PATH, File.join(dataset))
    end
 
    if (args.size() > 0)

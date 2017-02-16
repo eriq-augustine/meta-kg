@@ -56,7 +56,7 @@ class Histogram
    end
 
    # Creates a histogram and returns it as a string.
-   def self.generate(data, numBucksts = @@DEFAULT_NUM_BUCKETS)
+   def self.generate(data, numBuckets = @@DEFAULT_NUM_BUCKETS)
       min, max = data.minmax()
 
       hist = Histogram.new(min, max, numBuckets)

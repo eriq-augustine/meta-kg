@@ -1,6 +1,7 @@
 require_relative '../../lib/constants'
 require_relative '../../lib/nelle/constants'
 require_relative '../../lib/nelle/load'
+require_relative '../../lib/nelle/ontology'
 
 require 'date'
 require 'fileutils'
@@ -15,39 +16,11 @@ DEFAULT_MIN_CONFIDENCE = 0.99
 MIN_ENTITY_COUNT = 10
 MIN_RELATION_COUNT = 5
 
-# Get gold standard evaluation triples.
-def getTestTriples(dataDir)
-   triples = []
-
-   NellE::TEST_TRIPLE_FILENAMES.each{|filename|
-      # These files have either 0 or 1, but we will only consider positive triples.
-      newTriples, newRejectedCount = NellELoad.triples(File.join(dataDir, filename), 0.1)
-      triples += newTriples
-   }
-   triples.uniq!()
-
-   return triples
-end
-
 def getTriples(dataDir, minConfidence)
-   triples = []
-   rejectedCount = 0
+   triples, rejectedCount = NellELoad.allTriples(dataDir, minConfidence)
 
-   NellE::TRIPLE_FILENAMES.each{|filename|
-      newTriples, newRejectedCount = NellELoad.triples(File.join(dataDir, filename), minConfidence)
-
-      rejectedCount += newRejectedCount
-      triples += newTriples
-   }
-
-   totalSize = triples.size() + rejectedCount
-   dupSize = triples.size()
-
-   puts "Rejected #{rejectedCount} / #{totalSize} triples"
-
-   triples.uniq!()
-
-   puts "Deduped from #{dupSize} -> #{triples.size()}"
+   puts "Rejected #{rejectedCount} triples."
+   puts "Left with #{triples.size()} triples."
 
    return triples
 end
@@ -97,10 +70,20 @@ def writeTestSet(triples, testTriples, outDir)
    return evalTriples
 end
 
-def compileData(dataDir, minConfidence)
+def compileData(dataDir, minConfidence, ontologicalExpand)
    triples = getTriples(dataDir, minConfidence)
 
-   outDir = File.join(Constants::RAW_DATA_PATH, "NELLE_#{"%05d" % (minConfidence * 10000).to_i()}_#{DateTime.now().strftime('%Y%m%d%H%M')}")
+   if (ontologicalExpand)
+      ontology = Ontology.load(dataDir)
+      triples = Ontology.expand(triples, ontology, Ontology::DEFAULT_EXPAND_MAX_ITERATIONS, true)
+   end
+
+   suffix = DateTime.now().strftime('%Y%m%d%H%M')
+   if (ontologicalExpand)
+      suffix = "ONTOLOGY_EXPAND_#{suffix}"
+   end
+
+   outDir = File.join(Constants::RAW_DATA_PATH, "NELLE_#{"%05d" % (minConfidence * 10000).to_i()}_#{suffix}")
    FileUtils.mkdir_p(outDir)
 
    NellELoad.writeEntities(File.join(outDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
@@ -108,23 +91,35 @@ def compileData(dataDir, minConfidence)
 
    NellELoad.writeTriples(File.join(outDir, Constants::RAW_TRAIN_FILENAME), triples)
 
-   testTriples = getTestTriples(dataDir)
+   testTriples = NellELoad.testTriples(dataDir)
+   if (ontologicalExpand)
+      testTriples = Ontology.expand(testTriples, ontology, Ontology::DEFAULT_EXPAND_MAX_ITERATIONS, true)
+   end
 
    evalTriples = writeTestSet(triples, testTriples, outDir)
 end
 
 def parseArgs(args)
-   if (args.size() < 1 || args.size() > 2 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
-      puts "USAGE: ruby #{$0} <data dir> [minimum confidence]"
+   if (args.size() < 1 || args.size() > 3 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
+      puts "USAGE: ruby #{$0} <data dir> [minimum confidence] --ontologicalExpand"
       puts "minimum confidence -- Default: #{DEFAULT_MIN_CONFIDENCE}"
+      puts "If --ontologicalExpand is supplied, then the ontology will be used to expand the triples."
       exit(1)
    end
 
-   dataDir = args[0]
+   dataDir = args.shift()
    minConfidence = DEFAULT_MIN_CONFIDENCE
+   ontologicalExpand = false
 
-   if (args.size() == 2)
-      minConfidence = args[1].to_f()
+   if (args.size() > 0)
+      if (args.include?('--ontologicalExpand'))
+         ontologicalExpand = true
+         args.delete('--ontologicalExpand')
+      end
+   end
+
+   if (args.size() > 0)
+      minConfidence = args.shift().to_f()
 
       if (minConfidence < 0 || minConfidence > 1)
          puts "Minimum confidence must be between 0 and 1."
@@ -132,12 +127,16 @@ def parseArgs(args)
       end
    end
 
-   return dataDir, minConfidence
+   if (args.size() > 0)
+      puts "Unknown argument(s): #{args}"
+      exit(3)
+   end
+
+   return dataDir, minConfidence, ontologicalExpand
 end
 
 def main(args)
-   dataDir, minConfidence = parseArgs(args)
-   compileData(dataDir, minConfidence)
+   compileData(*parseArgs(args))
 end
 
 if (__FILE__ == $0)

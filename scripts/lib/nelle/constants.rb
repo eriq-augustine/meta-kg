@@ -36,7 +36,7 @@ module NellE
       'label-test-uniq-raw-rel.db.TRAIN'
    ]
 
-   CATEGORY_FILES = [
+   CATEGORY_FILENAMES = [
       'label-train-uniq-raw-cat.db.TRAIN',
       'NELL.08m.165.cesv.csv.CandCat_CBL.out',
       'NELL.08m.165.cesv.csv.CandCat_CMC.out',

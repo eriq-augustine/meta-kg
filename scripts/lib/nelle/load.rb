@@ -21,11 +21,28 @@ module NellELoad
    end
 
    # Just get all the unique triples as an Array.
-   def NellELoad.allTriples(sourceDir)
+   def NellELoad.allTriples(sourceDir, minConfidence = 0.0)
       triples = []
+      rejectedCount = 0
 
       NellE::TRIPLE_FILENAMES.each{|filename|
-         newTriples, newRejectedCount = NellELoad.triples(File.join(sourceDir, filename), -1)
+         newTriples, newRejectedCount = NellELoad.triples(File.join(sourceDir, filename), minConfidence)
+
+         rejectedCount += newRejectedCount
+         triples += newTriples
+      }
+      triples.uniq!()
+
+      return triples, rejectedCount
+   end
+
+   # Get gold standard evaluation triples.
+   def NellELoad.testTriples(sourceDir)
+      triples = []
+
+      NellE::TEST_TRIPLE_FILENAMES.each{|filename|
+         # These files have either 0 or 1, but we will only consider positive triples.
+         newTriples, newRejectedCount = NellELoad.triples(File.join(sourceDir, filename), 0.1)
          triples += newTriples
       }
       triples.uniq!()
@@ -48,6 +65,22 @@ module NellELoad
             cats << parts[0...2].map{|part| part.to_i()}
          }
       }
+
+      return cats, rejectedCount
+   end
+
+   # Just get all the unique categories as an Array.
+   def NellELoad.allCategories(sourceDir, minConfidence = 0.0)
+      cats = []
+      rejectedCount = 0
+
+      NellE::CATEGORY_FILENAMES.each{|filename|
+         newCats, newRejectedCount = NellELoad.categories(File.join(sourceDir, filename), minConfidence)
+
+         rejectedCount += newRejectedCount
+         cats += newCats
+      }
+      cats.uniq!()
 
       return cats, rejectedCount
    end

@@ -135,7 +135,7 @@ def parseArgs(args)
    if (args.size() > 0)
       outDir = args.shift()
    else
-      suffix = DateTime.now().strftime('%Y%m%d%H%M')
+      suffix = File.basename(embeddingDir).match(/^(.+)_\[size/)[1]
       outDir = "#{File.join(Constants::NELLE_DATA_PATH, File.basename(sourceDir))}_EMBED_#{suffix}"
    end
 

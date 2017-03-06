@@ -50,4 +50,23 @@ module MathUtils
          return 0.5 * (a + b) * (a + b + 1) + b
       end
    end
+
+   def MathUtils.sum(vals)
+      return vals.inject(0, :+)
+   end
+
+   def MathUtils.mean(vals)
+      if (vals.size() == 0)
+         return 0
+      end
+
+      return MathUtils.sum(vals) / vals.size().to_f()
+   end
+
+   def MathUtils.median(vals)
+      length = vals.size()
+      sorted = vals.sort()
+
+      return (sorted[(length - 1) / 2] + sorted[length / 2]) / 2.0
+   end
 end

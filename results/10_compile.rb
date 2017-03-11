@@ -1,3 +1,5 @@
+raise 'Raw dataset stats needs updating.'
+
 RESULTS_DIR = 'output'
 RESULTS_DATA_STATS_DIR = File.join(RESULTS_DIR, 'rawDataStats')
 RESULTS_EMBEDDING_EVAL_DIR = File.join(RESULTS_DIR, 'embeddingEvaluation')

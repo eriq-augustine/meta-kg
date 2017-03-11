@@ -16,11 +16,24 @@ DEFAULT_MIN_CONFIDENCE = 0.99
 MIN_ENTITY_COUNT = 10
 MIN_RELATION_COUNT = 5
 
-def getTriples(dataDir, minConfidence)
-   triples, rejectedCount = NellELoad.allTriples(dataDir, minConfidence)
+def getTriples(dataDir, minConfidence, includeCats)
+   triples, rejectedRelCount = NellELoad.allTriples(dataDir, minConfidence)
 
-   puts "Rejected #{rejectedCount} triples."
-   puts "Left with #{triples.size()} triples."
+   numRels = triples.size()
+   numCats = 0
+   rejectedCatCount = 0
+
+   if (includeCats)
+      catPairs, rejectedCatCount = NellELoad.allCategories(dataDir, minConfidence)
+      catTriples = catPairs.map{|catPair| catPair << NellE::CAT_RELATION_ID}
+
+      numCats = catTriples.size()
+      triples += catTriples
+   end
+
+
+   puts "Rejected #{rejectedRelCount + rejectedCatCount} (#{rejectedRelCount} rels, #{rejectedCatCount} cats) triples."
+   puts "Left with #{triples.size()} (#{numRels} rels, #{numCats} cats) triples."
 
    return triples
 end
@@ -70,8 +83,8 @@ def writeTestSet(triples, testTriples, outDir)
    return evalTriples
 end
 
-def compileData(dataDir, minConfidence, ontologicalExpand)
-   triples = getTriples(dataDir, minConfidence)
+def compileData(dataDir, minConfidence, ontologicalExpand, includeCats)
+   triples = getTriples(dataDir, minConfidence, includeCats)
 
    if (ontologicalExpand)
       ontology = Ontology.load(dataDir)
@@ -81,6 +94,10 @@ def compileData(dataDir, minConfidence, ontologicalExpand)
    suffix = DateTime.now().strftime('%Y%m%d%H%M')
    if (ontologicalExpand)
       suffix = "ONTOLOGY_EXPAND_#{suffix}"
+   end
+
+   if (includeCats)
+      suffix = "INCLUDE_CATS_#{suffix}"
    end
 
    outDir = File.join(Constants::RAW_DATA_PATH, "NELLE_#{"%05d" % (minConfidence * 10000).to_i()}_#{suffix}")
@@ -100,22 +117,27 @@ def compileData(dataDir, minConfidence, ontologicalExpand)
 end
 
 def parseArgs(args)
-   if (args.size() < 1 || args.size() > 3 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
-      puts "USAGE: ruby #{$0} <data dir> [minimum confidence] --ontologicalExpand"
+   if (args.size() < 1 || args.size() > 4 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
+      puts "USAGE: ruby #{$0} <data dir> [minimum confidence] [--ontologicalExpand] [--includeCats]"
       puts "minimum confidence -- Default: #{DEFAULT_MIN_CONFIDENCE}"
       puts "If --ontologicalExpand is supplied, then the ontology will be used to expand the triples."
+      puts "Id --includeCats is supplied, then cats will be added as triples using #{NellE::CAT_RELATION_ID} as the relation."
       exit(1)
    end
 
    dataDir = args.shift()
    minConfidence = DEFAULT_MIN_CONFIDENCE
    ontologicalExpand = false
+   includeCats = false
 
-   if (args.size() > 0)
-      if (args.include?('--ontologicalExpand'))
-         ontologicalExpand = true
-         args.delete('--ontologicalExpand')
-      end
+   if (args.size() > 0 && args.include?('--ontologicalExpand'))
+      ontologicalExpand = true
+      args.delete('--ontologicalExpand')
+   end
+
+   if (args.size() > 0 && args.include?('--includeCats'))
+      includeCats = true
+      args.delete('--includeCats')
    end
 
    if (args.size() > 0)
@@ -132,7 +154,7 @@ def parseArgs(args)
       exit(3)
    end
 
-   return dataDir, minConfidence, ontologicalExpand
+   return dataDir, minConfidence, ontologicalExpand, includeCats
 end
 
 def main(args)

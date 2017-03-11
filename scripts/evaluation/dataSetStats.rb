@@ -10,18 +10,29 @@ def tripleStats(label, triples)
    entities = Hash.new{|hash, key| hash[key] = Hash.new{|innerHash, innerKey| innerHash[innerKey] = 0}}
    relations = Hash.new{|hash, key| hash[key] = Hash.new{|innerHash, innerKey| innerHash[innerKey] = 0}}
 
+   # Triples per entity/realtion.
+   entityTripleCounts = Hash.new{|hash, key| hash[key] = 0}
+   relationTripleCounts = Hash.new{|hash, key| hash[key] = 0}
+
    triples.each{|triple|
       entities[triple[Constants::HEAD]][triple[Constants::RELATION]] += 1
       entities[triple[Constants::TAIL]][triple[Constants::RELATION]] += 1
 
       relations[triple[Constants::RELATION]][triple[Constants::HEAD]] += 1
       relations[triple[Constants::RELATION]][triple[Constants::TAIL]] += 1
+
+      entityTripleCounts[triple[Constants::HEAD]] += 1
+      entityTripleCounts[triple[Constants::TAIL]] += 1
+      relationTripleCounts[triple[Constants::RELATION]] += 1
    }
 
    # For each entity, how many relatoions did it touch.
    # Visa-versa for relations.
-   relationsPerEntitys = entities.values().map{|relations| relations.size()}
+   relationsPerEntities = entities.values().map{|relations| relations.size()}
    entitiesPerRelation = relations.values().map{|entities| entities.size()}
+
+   triplesPerEntity = entityTripleCounts.values()
+   triplesPerRelation = relationTripleCounts.values()
 
    puts "#{label} Triples:"
    puts "   Num Triples: #{triples.size()}"
@@ -29,27 +40,40 @@ def tripleStats(label, triples)
    puts "   Num Distinct Entities:  #{entities.size()}"
    puts "   Num Distinct Relations: #{relations.size()}"
 
+   puts "   Triples / Entities:  #{triples.size().to_f() / entities.size()}"
+   puts "   Triples / Relations: #{triples.size().to_f() / relations.size()}"
+
    puts "   Relations per Entity:"
-   puts "      Mean:   #{MathUtils.mean(relationsPerEntitys)}"
-   puts "      Median: #{MathUtils.median(relationsPerEntitys)}"
+   puts "      Mean:   #{MathUtils.mean(relationsPerEntities)}"
+   puts "      Median: #{MathUtils.median(relationsPerEntities)}"
 
    puts "   Entities per Relation:"
    puts "      Mean:   #{MathUtils.mean(entitiesPerRelation)}"
    puts "      Median: #{MathUtils.median(entitiesPerRelation)}"
+
+   puts "   Triples per Entity:"
+   puts "      Mean:   #{MathUtils.mean(triplesPerEntity)}"
+   puts "      Median: #{MathUtils.median(triplesPerEntity)}"
+
+   puts "   Triples per Relation:"
+   puts "      Mean:   #{MathUtils.mean(triplesPerRelation)}"
+   puts "      Median: #{MathUtils.median(triplesPerRelation)}"
 end
 
 def dataStats(dataDir)
-   numEntities = Load.idMapping(File.join(dataDir, Constants::RAW_ENTITY_MAPPING_FILENAME)).size()
-   numRelations = Load.idMapping(File.join(dataDir, Constants::RAW_RELATION_MAPPING_FILENAME)).size()
+   # Note that we don't care about int keys.
+   testTriples = Load.triples(File.join(dataDir, Constants::RAW_TEST_FILENAME), false)
+   trainTriples = Load.triples(File.join(dataDir, Constants::RAW_TRAIN_FILENAME), false)
+   validTriples = Load.triples(File.join(dataDir, Constants::RAW_VALID_FILENAME), false)
 
-   puts "Num Entities:  #{numEntities}"
-   puts "Num Relations: #{numRelations}"
+   statSets = [
+      ['Total', testTriples + trainTriples + validTriples],
+      ['Train', testTriples],
+      ['Test', trainTriples],
+      ['Valid', validTriples]
+   ]
 
-   testTriples = Load.triples(File.join(dataDir, Constants::RAW_TEST_FILENAME))
-   trainTriples = Load.triples(File.join(dataDir, Constants::RAW_TRAIN_FILENAME))
-   validTriples = Load.triples(File.join(dataDir, Constants::RAW_VALID_FILENAME))
-
-   [['Test', testTriples], ['Train', trainTriples], ['Valid', validTriples]].each{|label, triples|
+   statSets.each{|label, triples|
       tripleStats(label, triples)
    }
 end

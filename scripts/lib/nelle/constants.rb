@@ -1,4 +1,7 @@
 module NellE
+   # The relation to use for categories when we inject categorty triples for embeddings.
+   CAT_RELATION_ID = 0
+
    # Make sure to leave out the evaluation gold truth.
    TRIPLE_FILENAMES = [
       'label-train-uniq-raw-rel.db.TRAIN',

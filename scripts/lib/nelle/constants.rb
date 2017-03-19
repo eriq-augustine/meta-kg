@@ -60,4 +60,17 @@ module NellE
       'testTargets.shangpu.ValCat.out',
       'trainTargets.ValCat.out'
    ]
+
+   REPLACEMENT_CATEGORY_FILENAMES = [
+      'label-train-uniq-raw-cat.db.TRAIN',
+      'NELL.08m.165.cesv.csv.CandCat_CBL.out',
+      'NELL.08m.165.cesv.csv.CandCat_CMC.out',
+      'NELL.08m.165.cesv.csv.CandCat_CPL.out',
+      'NELL.08m.165.cesv.csv.CandCat_General.out',
+      'NELL.08m.165.cesv.csv.CandCat_Morph.out',
+      'NELL.08m.165.cesv.csv.CandCat.out',
+      'NELL.08m.165.cesv.csv.CandCat_SEAL.out',
+      'NELL.08m.165.cesv.csv.PattCat.out',
+      'NELL.08m.165.esv.csv.PromCat_General.out'
+   ]
 end

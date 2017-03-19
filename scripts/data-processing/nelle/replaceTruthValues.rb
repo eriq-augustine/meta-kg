@@ -46,6 +46,10 @@ def getEnergies(sourceDir, datasetDir, embeddingDir, embeddingMethod, distanceTy
 
    triples, _ = NellELoad.allTriples(sourceDir)
 
+   catPairs, _ = NellELoad.allCategories(sourceDir)
+   catTriples = catPairs.map{|catPair| catPair << NellE::CAT_RELATION_ID}
+   triples += catTriples
+
    # Note that the embeddings are indexed by the value in the mappings (eg. entity2id.txt).
 	entityMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), true)
 	relationMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), true)
@@ -86,6 +90,31 @@ def replaceEnergies(sourceDir, outDir, energies)
 
          if (energies.has_key?(id))
             triples[i][3] = energies[id]
+         end
+      }
+
+      File.open(File.join(outDir, filename), 'w'){|file|
+         triples.each_slice(PAGE_SIZE){|page|
+            file.puts(page.map{|triple| triple.join("\t")}.join("\n"))
+         }
+      }
+   }
+
+   NellE::REPLACEMENT_CATEGORY_FILENAMES.each{|filename|
+      triples = []
+
+      File.open(File.join(outDir, filename), 'r'){|file|
+         file.each{|line|
+            parts = line.split("\t").map{|part| part.strip()}
+            triples << parts[0...2].map{|part| part.to_i()} + [parts[2].to_f()]
+         }
+      }
+
+      triples.each_index{|i|
+         id = (triples[i][0...2].push(NellE::CAT_RELATION_ID)).join(':')
+
+         if (energies.has_key?(id))
+            triples[i][2] = energies[id]
          end
       }
 

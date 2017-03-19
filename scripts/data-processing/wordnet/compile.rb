@@ -1,5 +1,14 @@
 # Complie a wordnet knowledge graph from raw data files.
 
+require_relative '../../lib/constants'
+
+require 'fileutils'
+
+DEFAULT_OUT_DIR = 'WN'
+
+# How much of the data to use for a training set.
+TRAINING_PERCENT = 0.90
+
 DATA_FILENAMES = [
    'data.adj',
    'data.adv',
@@ -140,22 +149,81 @@ def parseData(dataDir)
       triples += parseFile(File.join(dataDir, filename))
    }
 
-   # TEST
-   puts triples.size()
+   return triples
+end
+
+def writeData(triples, outDirName)
+   datasetDir = File.join(Constants::RAW_DATA_PATH, outDirName)
+   FileUtils.mkdir_p(datasetDir)
+
+   puts "Writing #{triples.size()} triples to #{datasetDir}"
+
+   writeEntities(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
+   writeRelations(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)
+
+   # TODO(eriq): We probably need smarter splitting?
+   trainingSize = (triples.size() * TRAINING_PERCENT).to_i()
+
+   # Both test and valid sets will get this count.
+   # The rounding error on odd is a non-issue. The valid will just have one less.
+   testSize = ((triples.size() - trainingSize) / 2 + 0.5).to_i()
+
+   triples.shuffle!
+   trainingSet = triples.slice(0, trainingSize)
+   testSet = triples.slice(trainingSize, testSize)
+   validSet = triples.slice(trainingSize + testSize, testSize)
+
+   writeTriples(File.join(datasetDir, Constants::RAW_TRAIN_FILENAME), trainingSet)
+   writeTriples(File.join(datasetDir, Constants::RAW_TEST_FILENAME), testSet)
+   writeTriples(File.join(datasetDir, Constants::RAW_VALID_FILENAME), validSet)
+end
+
+def writeEntities(path, triples)
+   entities = []
+   entities += triples.map{|triple| triple[Constants::HEAD]}
+   entities += triples.map{|triple| triple[Constants::TAIL]}
+   entities.uniq!
+
+   File.open(path, 'w'){|file|
+      file.puts(entities.map.with_index{|entity, index| "#{entity}\t#{index}"}.join("\n"))
+   }
+end
+
+def writeRelations(path, triples)
+   relations = triples.map{|triple| triple[Constants::RELATION]}
+   relations.uniq!
+
+   File.open(path, 'w'){|file|
+      file.puts(relations.map.with_index{|relation, index| "#{relation}\t#{index}"}.join("\n"))
+   }
+end
+
+def writeTriples(path, triples)
+    File.open(path, 'w'){|file|
+      file.puts(triples.map{|triple| "#{triple[Constants::HEAD]}\t#{triple[Constants::TAIL]}\t#{triple[Constants::RELATION]}"}.join("\n"))
+    }
 end
 
 def loadArgs(args)
-   if (args.size != 1 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
-      puts "USAGE: ruby #{$0} <wordnet database dir>"
+   if (args.size < 1 || args.size > 2 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
+      puts "USAGE: ruby #{$0} <wordnet database dir> [output dir name]"
       exit(1)
    end
 
-   return args.shift()
+   dataDir = args.shift()
+   outDirName = DEFAULT_OUT_DIR
+
+   if (args.size() > 0)
+      outDirName = args.shift()
+   end
+
+   return dataDir, outDirName
 end
 
 def main(args)
-   dataDir = loadArgs(args)
-   parseData(dataDir)
+   dataDir, outDirName = loadArgs(args)
+   triples = parseData(dataDir)
+   writeData(triples, outDirName)
 end
 
 if ($0 == __FILE__)

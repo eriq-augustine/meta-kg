@@ -14,16 +14,23 @@ TRAINING_PERCENT = 0.90
 DEFAULT_MIN_PROBABILITY = 0.95
 DEFAULT_MAX_PROBABILITY = 1.00
 DEFAULT_MIN_ENTITY_MENTIONS = 20
+DEFAULT_MAX_ENTITY_MENTIONS = 1000000000
 DEFAULT_MIN_RELATION_MENTIONS = 5
+DEFAULT_MAX_RELATION_MENTIONS = 1000000000
 
 # About the same as Freebase.
 DEFAULT_MAX_TRIPLES = 500000
 
-def formatDatasetName(suffix, minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples)
-   return "#{OUT_BASENAME}_#{"%03d" % (minProbability * 100)}_#{"%03d" % (maxProbability * 100)}_[#{"%03d" % minEntityMentions},#{"%03d" % minRelationMentions},#{maxTriples}]_#{suffix}"
+def formatDatasetName(suffix, minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples)
+   probabilityString = "#{"%03d" % (minProbability * 100)}_#{"%03d" % (maxProbability * 100)}"
+   entityMentions = "#{"%03d" % minEntityMentions},#{"%03d" % maxEntityMentions}"
+   relationMentions = "#{"%03d" % minRelationMentions},#{"%03d" % maxRelationMentions}"
+   paramSection = "#{entityMentions},#{relationMentions},#{maxTriples}"
+
+   return "#{OUT_BASENAME}_#{probabilityString}_[#{paramSection}]_#{suffix}"
 end
 
-def fetchTriples(minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples)
+def fetchTriples(minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples)
    conn = PG::Connection.new(:host => 'localhost', :dbname => DB_NAME)
 
    query = "
@@ -39,13 +46,13 @@ def fetchTriples(minProbability, maxProbability, minEntityMentions, minRelationM
          JOIN EntityCounts TEC ON TEC.entityId = T.tail
       WHERE
          T.probability BETWEEN #{minProbability} AND #{maxProbability}
-         AND HEC.entityCount >= #{minEntityMentions}
-         AND RC.relationCount >= #{minRelationMentions}
-         AND TEC.entityCount >= #{minEntityMentions}
+         AND HEC.entityCount BETWEEN #{minEntityMentions} AND #{maxEntityMentions}
+         AND RC.relationCount BETWEEN #{minRelationMentions} AND #{maxRelationMentions}
+         AND TEC.entityCount BETWEEN #{minEntityMentions} AND #{maxEntityMentions}
       LIMIT #{maxTriples}
    "
 
-	result = conn.exec(query).values()
+   result = conn.exec(query).values()
    conn.close()
 
    return result
@@ -79,19 +86,21 @@ def writeTriples(path, triples)
 end
 
 def printUsage()
-   puts "USAGE: ruby #{$0} [min probability [max probability [min entity mentions [min relation mentions [max triples [suffix]]]]]]"
+   puts "USAGE: ruby #{$0} [min probability [max probability [min entity mentions [max entity mentions [min relation mentions [max relation mentions [max triples [suffix]]]]]]]]"
    puts "Defaults:"
    puts "   min probability = #{DEFAULT_MIN_PROBABILITY}"
    puts "   max probability = #{DEFAULT_MAX_PROBABILITY}"
    puts "   min entity mentions = #{DEFAULT_MIN_ENTITY_MENTIONS}"
+   puts "   max entity mentions = #{DEFAULT_MAX_ENTITY_MENTIONS}"
    puts "   min relation mentions = #{DEFAULT_MIN_RELATION_MENTIONS}"
+   puts "   max relation mentions = #{DEFAULT_MAX_RELATION_MENTIONS}"
    puts "   max triples = #{DEFAULT_MAX_TRIPLES}"
    puts "   suffix = now"
    puts "Data will be created in #{Constants::RAW_DATA_PATH}"
 end
 
 def parseArgs(args)
-   if (args.size() > 6 || args.map{|arg| arg.downcase().gsub('-', '')}.include?('help'))
+   if (args.size() > 8 || args.map{|arg| arg.downcase().gsub('-', '')}.include?('help'))
       printUsage()
       exit(2)
    end
@@ -99,32 +108,42 @@ def parseArgs(args)
    minProbability = DEFAULT_MIN_PROBABILITY
    maxProbability = DEFAULT_MAX_PROBABILITY
    minEntityMentions = DEFAULT_MIN_ENTITY_MENTIONS
+   maxEntityMentions = DEFAULT_MAX_ENTITY_MENTIONS
    minRelationMentions = DEFAULT_MIN_RELATION_MENTIONS
+   maxRelationMentions = DEFAULT_MAX_RELATION_MENTIONS
    maxTriples = DEFAULT_MAX_TRIPLES
    suffix = DateTime.now().strftime('%Y%m%d%H%M')
 
    if (args.size() > 0)
-      minProbability = args[0].to_f()
+      minProbability = args.shift().to_f()
    end
 
-   if (args.size() > 1)
-      maxProbability = args[1].to_f()
+   if (args.size() > 0)
+      maxProbability = args.shift().to_f()
    end
 
-   if (args.size() > 2)
-      minEntityMentions = args[2].to_i()
+   if (args.size() > 0)
+      minEntityMentions = args.shift().to_i()
    end
 
-   if (args.size() > 3)
-      minRelationMentions = args[3].to_i()
+   if (args.size() > 0)
+      maxEntityMentions = args.shift().to_i()
    end
 
-   if (args.size() > 4)
-      maxTriples = args[4].to_i()
+   if (args.size() > 0)
+      minRelationMentions = args.shift().to_i()
    end
 
-   if (args.size() > 5)
-      suffix = args[5]
+   if (args.size() > 0)
+      maxRelationMentions = args.shift().to_i()
+   end
+
+   if (args.size() > 0)
+      maxTriples = args.shift().to_i()
+   end
+
+   if (args.size() > 0)
+      suffix = args.shift()
    end
 
    if (minProbability < 0 || minProbability > 1 || maxProbability < 0 || maxProbability > 1)
@@ -142,18 +161,23 @@ def parseArgs(args)
       exit(5)
    end
 
-   return minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples, suffix
+   if (minEntityMentions > maxEntityMentions || minRelationMentions > maxRelationMentions)
+      puts "Entity/Relation max must be greater than min."
+      exit(6)
+   end
+
+   return minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples, suffix
 end
 
 def main(args)
-   minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples, suffix = parseArgs(args)
+   minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples, suffix = parseArgs(args)
 
-   datasetDir = File.join(Constants::RAW_DATA_PATH, formatDatasetName(suffix, minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples))
+   datasetDir = File.join(Constants::RAW_DATA_PATH, formatDatasetName(suffix, minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples))
    FileUtils.mkdir_p(datasetDir)
 
    puts "Generating #{datasetDir} ..."
 
-   triples = fetchTriples(minProbability, maxProbability, minEntityMentions, minRelationMentions, maxTriples)
+   triples = fetchTriples(minProbability, maxProbability, minEntityMentions, maxEntityMentions, minRelationMentions, maxRelationMentions, maxTriples)
 
    writeEntities(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
    writeRelations(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)
@@ -178,5 +202,3 @@ end
 if (__FILE__ == $0)
    main(ARGV)
 end
-
-

@@ -56,6 +56,7 @@ TRANSE_EXPERIMENTS = {
    'data' => [FB15K_DATA_DIR, FB15K_005_DATA_DIR, FB15K_010_DATA_DIR, FB15K_050_DATA_DIR, NELL_DATA_DIR] + UNCERTIAN_NELL_DIRS,
    'args' => {
       'size' => [50, 100],
+      'rate' => [0.01],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT, Distance::L2_ID_INT]
    }
@@ -66,6 +67,7 @@ TRANSH_EXPERIMENTS = {
    'data' => [FB15K_DATA_DIR, FB15K_005_DATA_DIR, FB15K_010_DATA_DIR, FB15K_050_DATA_DIR, NELL_DATA_DIR] + UNCERTIAN_NELL_DIRS,
    'args' => {
       'size' => [50, 100],
+      'rate' => [0.01],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT]
    }
@@ -77,8 +79,21 @@ TRANSR_EXPERIMENTS = {
    'data' => [FB15K_DATA_DIR, FB15K_005_DATA_DIR, FB15K_010_DATA_DIR, FB15K_050_DATA_DIR, NELL_DATA_DIR],
    'args' => {
       'size' => [50, 100],
+      'rate' => [0.01],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT, Distance::L2_ID_INT]
+   }
+}
+
+# A new set of experiments revolving around confidence and sparsity.
+SPARSITY_TRANSE_EXPERIMENTS = {
+   'emethod' => 'TransE',
+   'data' => [FB15K_DATA_DIR, FB15K_005_DATA_DIR, FB15K_010_DATA_DIR, FB15K_050_DATA_DIR, NELL_DATA_DIR] + UNCERTIAN_NELL_DIRS,
+   'args' => {
+      'size' => [100],
+      'rate' => [0.001],
+      'method' => [Embedding::METHOD_BERNOULLI],
+      'distance' => [Distance::L1_ID_INT]
    }
 }
 
@@ -108,17 +123,19 @@ def buildExperiments(experimentsDefinition)
       experimentsDefinition['args']['size'].each{|embeddingSize|
          experimentsDefinition['args']['method'].each{|method|
             experimentsDefinition['args']['distance'].each{|distance|
-               experiments << {
-                  'emethod' => experimentsDefinition['emethod'],
-                  'data' => dataset,
-                  'args' => {
-                     'size' => embeddingSize,
-                     'margin' => 1,
-                     'method' => method,
-                     'rate' => 0.01,
-                     'batches' => 100,
-                     'epochs' => 1000,
-                     'distance' => distance
+               experimentsDefinition['args']['rate'].each{|rate|
+                  experiments << {
+                     'emethod' => experimentsDefinition['emethod'],
+                     'data' => dataset,
+                     'args' => {
+                        'size' => embeddingSize,
+                        'margin' => 1,
+                        'method' => method,
+                        'rate' => rate,
+                        'batches' => 100,
+                        'epochs' => 1000,
+                        'distance' => distance
+                     }
                   }
                }
             }
@@ -144,14 +161,16 @@ def runAll(experiments)
       }
    }
 
+   pool.wait(:done)
    pool.shutdown()
 end
 
 def main(args)
-   experiments = buildExperiments(TRANSE_EXPERIMENTS) + buildExperiments(TRANSH_EXPERIMENTS)
+   experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS)
 
+   # experiments = buildExperiments(TRANSE_EXPERIMENTS) + buildExperiments(TRANSH_EXPERIMENTS)
    # Some methods require data from other experiments and must be run after.
-   experiments2 = buildTransRExperiments(TRANSR_EXPERIMENTS)
+   # experiments2 = buildTransRExperiments(TRANSR_EXPERIMENTS)
 
    runAll(experiments)
    # runAll(experiments2)

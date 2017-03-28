@@ -101,6 +101,7 @@ module Load
    # {firstId: secondId, ...}
    # Similar to Load.map, but doesn't do any normalization
    # If a block is passed, then the block will be called with each batch of ids.
+   # Note that even if |intKeys| is false, the value (second value) is always expected to be an int.
    def Load.idMapping(path, intKeys = false, &block)
       if (block == nil)
          return Load.idMappingOffline(path, intKeys)
@@ -118,8 +119,9 @@ module Load
             parts = line.split("\t").map{|part| part.strip()}
 
             if (intKeys)
-               parts.map!{|part| part.to_i()}
+               parts[0] = parts[0].to_i()
             end
+            parts[1] = parts[1].to_i()
 
             values[parts[0]] = parts[1]
          }
@@ -138,8 +140,9 @@ module Load
             parts = line.split("\t").map{|part| part.strip()}
 
             if (intKeys)
-               parts.map!{|part| part.to_i()}
+               parts[0] = parts[0].to_i()
             end
+            parts[1] = parts[1].to_i()
 
             values[parts[0]] = parts[1]
 

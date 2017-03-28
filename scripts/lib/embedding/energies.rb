@@ -67,14 +67,19 @@ module Energies
                      next
                   end
 
-                  ok, energy = energyMethod.call(
-                     entityEmbeddings[entityMapping[triple[0]]],
-                     entityEmbeddings[entityMapping[triple[1]]],
-                     relationEmbeddings[relationMapping[triple[2]]],
-                     entityMapping[triple[0]],
-                     entityMapping[triple[1]],
-                     relationMapping[triple[2]]
-                  )
+                  begin
+                     ok, energy = energyMethod.call(
+                        entityEmbeddings[entityMapping[triple[0]]],
+                        entityEmbeddings[entityMapping[triple[1]]],
+                        relationEmbeddings[relationMapping[triple[2]]],
+                        entityMapping[triple[0]],
+                        entityMapping[triple[1]],
+                        relationMapping[triple[2]]
+                     )
+                  rescue Exception => ex
+                     # TEST
+                     puts "EXCEPTION: #{ex}"
+                  end
                end
 
                if (!skipBadEnergies || ok)

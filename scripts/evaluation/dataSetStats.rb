@@ -68,8 +68,8 @@ def dataStats(dataDir)
 
    statSets = [
       ['Total', testTriples + trainTriples + validTriples],
-      ['Train', testTriples],
-      ['Test', trainTriples],
+      ['Test', testTriples],
+      ['Train', trainTriples],
       ['Valid', validTriples]
    ]
 

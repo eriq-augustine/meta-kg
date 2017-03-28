@@ -1,5 +1,3 @@
-raise 'Raw dataset stats needs updating.'
-
 RESULTS_DIR = 'output'
 RESULTS_DATA_STATS_DIR = File.join(RESULTS_DIR, 'rawDataStats')
 RESULTS_EMBEDDING_EVAL_DIR = File.join(RESULTS_DIR, 'embeddingEvaluation')
@@ -147,9 +145,17 @@ end
 
 def compileRawDataStats()
    headers = [
-      'Dataset',
-      'Entities',
-      'Relations',
+      'Total - Triples',
+      'Total - Distinct Entities',
+      'Total - Distinct Relations',
+      'Total - R/E - Mean',
+      'Total - R/E - Median',
+      'Total - E/R - Mean',
+      'Total - E/R - Median',
+      'Total - T/E - Mean',
+      'Total - T/E - Median',
+      'Total - T/R - Mean',
+      'Total - T/R - Median',
       'Test - Triples',
       'Test - Distinct Entities',
       'Test - Distinct Relations',
@@ -157,6 +163,10 @@ def compileRawDataStats()
       'Test - R/E - Median',
       'Test - E/R - Mean',
       'Test - E/R - Median',
+      'Test - T/E - Mean',
+      'Test - T/E - Median',
+      'Test - T/R - Mean',
+      'Test - T/R - Median',
       'Train - Triples',
       'Train - Distinct Entities',
       'Train - Distinct Relations',
@@ -164,13 +174,21 @@ def compileRawDataStats()
       'Train - R/E - Median',
       'Train - E/R - Mean',
       'Train - E/R - Median',
+      'Train - T/E - Mean',
+      'Train - T/E - Median',
+      'Train - T/R - Mean',
+      'Train - T/R - Median',
       'Truth - Triples',
       'Truth - Distinct Entities',
       'Truth - Distinct Relations',
       'Truth - R/E - Mean',
       'Truth - R/E - Median',
       'Truth - E/R - Mean',
-      'Truth - E/R - Median'
+      'Truth - E/R - Median',
+      'Truth - T/E - Mean',
+      'Truth - T/E - Median',
+      'Truth - T/R - Mean',
+      'Truth - T/R - Median'
    ]
 
    data = []

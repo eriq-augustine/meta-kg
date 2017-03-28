@@ -1,4 +1,5 @@
 # Enumerate over the options and generate all the Nell-based datasets.
+# Abandoning triples per relation because we can't get enough triples.
 
 GEN_SCRIPT_PATH = File.join('scripts', 'data-processing', 'nell', 'genDatasetFiles.rb')
 PRECISION = 2
@@ -8,30 +9,24 @@ MAX_CONFIDENCE = 1.00
 CONFIDENCE_STEP = 0.10
 
 # Triples Per Entity
-MIN_TPE = 10
-MAX_TPE = 130
-TPE_STEP = 30
+# 0 actually isn't a 
+MIN_ENTITY_CENTILE = 1
+MAX_ENTITY_CENTILE = 100
+ENTITY_CENTILE_STEP = 25
 
-# Triples Per Relation
-MIN_TPR = 10
-MAX_TPR = 130
-TPR_STEP = 30
+MAX_TRIPLES = 600000
 
-MAX_TRIPLES = 500000
-
-def genDataset(minConfidence, maxConfidence, minTPE, maxTPE, minTPR, maxTPR, maxTriples)
+def genDataset(minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, maxTriples)
    args = [
       minConfidence,
       maxConfidence,
-      minTPE,
-      maxTPE,
-      minTPR,
-      maxTPR,
+      minEntityCentile,
+      maxEntityCentile,
       maxTriples
    ]
 
    puts "ruby #{GEN_SCRIPT_PATH} #{args.map{|arg| "'#{arg}'"}.join(' ')}"
-   `ruby #{GEN_SCRIPT_PATH} #{args.map{|arg| "'#{arg}'"}.join(' ')}`
+   puts `ruby #{GEN_SCRIPT_PATH} #{args.map{|arg| "'#{arg}'"}.join(' ')}`
 end
 
 def crossproductParams()
@@ -41,20 +36,13 @@ def crossproductParams()
    while (minConfidence < MAX_CONFIDENCE)
       maxConfidence = (minConfidence + CONFIDENCE_STEP).round(PRECISION)
 
-      minTPE = MIN_TPE
-      while (minTPE < MAX_TPE)
-         maxTPE = (minTPE + TPE_STEP)
+      minEntityCentile = MIN_ENTITY_CENTILE
+      while (minEntityCentile < MAX_ENTITY_CENTILE)
+         maxEntityCentile = minEntityCentile + ENTITY_CENTILE_STEP - 1
 
-         minTPR = MIN_TPR
-         while (minTPR < MAX_TPR)
-            maxTPR = (minTPR + TPR_STEP)
+         paramSets << [minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, MAX_TRIPLES]
 
-            paramSets << [minConfidence, maxConfidence, minTPE, maxTPE, minTPR, maxTPR, MAX_TRIPLES]
-
-            minTPR = maxTPR
-         end
-
-         minTPE = maxTPE
+         minEntityCentile = maxEntityCentile + 1
       end
 
       minConfidence = maxConfidence
@@ -71,7 +59,7 @@ def detailedParams()
    while (minConfidence < 1.00)
       maxConfidence = (minConfidence + 0.05).round(PRECISION)
 
-      paramSets << [minConfidence, maxConfidence, 40, 70, 40, 70, MAX_TRIPLES]
+      paramSets << [minConfidence, maxConfidence, 76, 100, MAX_TRIPLES]
 
       minConfidence = maxConfidence
    end

@@ -90,6 +90,7 @@ TRANSE_EXPERIMENTS = {
    'args' => {
       'size' => [50, 100],
       'rate' => [0.01],
+      'margin' => [1.0],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT, Distance::L2_ID_INT]
    }
@@ -101,6 +102,7 @@ TRANSH_EXPERIMENTS = {
    'args' => {
       'size' => [50, 100],
       'rate' => [0.01],
+      'margin' => [1.0],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT]
    }
@@ -113,6 +115,7 @@ TRANSR_EXPERIMENTS = {
    'args' => {
       'size' => [50, 100],
       'rate' => [0.01],
+      'margin' => [1.0],
       'method' => [Embedding::METHOD_UNIFORM, Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT, Distance::L2_ID_INT]
    }
@@ -125,6 +128,19 @@ SPARSITY_TRANSE_EXPERIMENTS = {
    'args' => {
       'size' => [100],
       'rate' => [0.001],
+      'margin' => [1.0],
+      'method' => [Embedding::METHOD_BERNOULLI],
+      'distance' => [Distance::L1_ID_INT]
+   }
+}
+
+SPARSITY_TRANSH_EXPERIMENTS = {
+   'emethod' => 'TransH',
+   'data' => SPARSITY_DATA_DIRS,
+   'args' => {
+      'size' => [100],
+      'rate' => [0.005],
+      'margin' => [0.25],
       'method' => [Embedding::METHOD_BERNOULLI],
       'distance' => [Distance::L1_ID_INT]
    }
@@ -199,7 +215,7 @@ def runAll(experiments)
 end
 
 def main(args)
-   experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS)
+   experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS) + buildExperiments(SPARSITY_TRANSH_EXPERIMENTS)
 
    # experiments = buildExperiments(TRANSE_EXPERIMENTS) + buildExperiments(TRANSH_EXPERIMENTS)
    # Some methods require data from other experiments and must be run after.

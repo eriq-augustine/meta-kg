@@ -14,14 +14,19 @@ MIN_ENTITY_CENTILE = 1
 MAX_ENTITY_CENTILE = 100
 ENTITY_CENTILE_STEP = 25
 
+MIN_RELATION_CENTILE = 1
+MAX_RELATION_CENTILE = 100
+
 MAX_TRIPLES = 600000
 
-def genDataset(minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, maxTriples)
+def genDataset(minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, minRelationCentile, maxRelationCentile, maxTriples)
    args = [
       minConfidence,
       maxConfidence,
       minEntityCentile,
       maxEntityCentile,
+      minRelationCentile,
+      maxRelationCentile,
       maxTriples
    ]
 
@@ -40,7 +45,7 @@ def crossproductParams()
       while (minEntityCentile < MAX_ENTITY_CENTILE)
          maxEntityCentile = minEntityCentile + ENTITY_CENTILE_STEP - 1
 
-         paramSets << [minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, MAX_TRIPLES]
+         paramSets << [minConfidence, maxConfidence, minEntityCentile, maxEntityCentile, MIN_RELATION_CENTILE, MAX_RELATION_CENTILE, MAX_TRIPLES]
 
          minEntityCentile = maxEntityCentile + 1
       end
@@ -59,7 +64,7 @@ def detailedParams()
    while (minConfidence < 1.00)
       maxConfidence = (minConfidence + 0.05).round(PRECISION)
 
-      paramSets << [minConfidence, maxConfidence, 76, 100, MAX_TRIPLES]
+      paramSets << [minConfidence, maxConfidence, 76, 100, MIN_RELATION_CENTILE, MAX_RELATION_CENTILE, MAX_TRIPLES]
 
       minConfidence = maxConfidence
    end

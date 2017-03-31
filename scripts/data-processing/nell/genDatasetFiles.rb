@@ -17,19 +17,22 @@ DEFAULT_MIN_PROBABILITY = 0.95
 DEFAULT_MAX_PROBABILITY = 1.00
 DEFAULT_MIN_ENTITY_TILE = 95
 DEFAULT_MAX_ENTITY_TILE = 100
+DEFAULT_MIN_RELATION_TILE = 10
+DEFAULT_MAX_RELATION_TILE = 40
 
 # About the same as Freebase.
-DEFAULT_MAX_TRIPLES = 500000
+DEFAULT_MAX_TRIPLES = 600000
 
-def formatDatasetName(suffix, minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples)
+def formatDatasetName(suffix, minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples)
    probabilityString = "#{"%03d" % (minProbability * 100)}_#{"%03d" % (maxProbability * 100)}"
    entityTile = "#{"%03d" % minEntityTile},#{"%03d" % maxEntityTile}"
-   paramSection = "#{entityTile};#{maxTriples}"
+   relationTile = "#{"%03d" % minRelationTile},#{"%03d" % maxRelationTile}"
+   paramSection = "#{entityTile};#{relationTile};#{maxTriples}"
 
    return "#{OUT_BASENAME}_#{probabilityString}_[#{paramSection}]_#{suffix}"
 end
 
-def fetchTriples(minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples)
+def fetchTriples(minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples)
    conn = PG::Connection.new(:host => 'localhost', :dbname => DB_NAME)
 
    query = "
@@ -39,12 +42,14 @@ def fetchTriples(minProbability, maxProbability, minEntityTile, maxEntityTile, m
          T.tail
       FROM
          Triples T
-         JOIN EntityCounts EC ON
-            EC.entityId = T.head
-            OR EC.entityId = T.tail
+         JOIN RelationCounts RC ON RC.relationId = T.relation
+         JOIN EntityCounts ECH ON ECH.entityId = T.head
+         JOIN EntityCounts ECT ON ECT.entityId = T.tail
       WHERE
          T.probability BETWEEN #{minProbability} AND #{maxProbability}
-         AND EC.centile BETWEEN #{minEntityTile} AND #{maxEntityTile}
+         AND RC.centile BETWEEN #{minRelationTile} AND #{maxRelationTile}
+         AND ECH.centile BETWEEN #{minEntityTile} AND #{maxEntityTile}
+         AND ECT.centile BETWEEN #{minEntityTile} AND #{maxEntityTile}
       LIMIT #{maxTriples}
    "
 
@@ -84,12 +89,14 @@ def writeTriples(path, triples)
 end
 
 def printUsage()
-   puts "USAGE: ruby #{$0} [min probability [max probability [min entity tile [max entity tile [max triples [suffix]]]]]]"
+   puts "USAGE: ruby #{$0} [min probability [max probability [min entity tile [max entity tile [min relation tile [max relation tile [max triples [suffix]]]]]]]]"
    puts "Defaults:"
    puts "   min probability = #{DEFAULT_MIN_PROBABILITY}"
    puts "   max probability = #{DEFAULT_MAX_PROBABILITY}"
    puts "   min entity tile = #{DEFAULT_MIN_ENTITY_TILE}"
    puts "   max entity tile = #{DEFAULT_MAX_ENTITY_TILE}"
+   puts "   min relation tile = #{DEFAULT_MIN_RELATION_TILE}"
+   puts "   max relation tile = #{DEFAULT_MAX_RELATION_TILE}"
    puts "   max triples = #{DEFAULT_MAX_TRIPLES}"
    puts "   suffix = now"
    puts ""
@@ -107,6 +114,8 @@ def parseArgs(args)
    maxProbability = DEFAULT_MAX_PROBABILITY
    minEntityTile = DEFAULT_MIN_ENTITY_TILE
    maxEntityTile = DEFAULT_MAX_ENTITY_TILE
+   minRelationTile = DEFAULT_MIN_RELATION_TILE
+   maxRelationTile = DEFAULT_MAX_RELATION_TILE
    maxTriples = DEFAULT_MAX_TRIPLES
    suffix = DateTime.now().strftime('%Y%m%d%H%M')
 
@@ -127,6 +136,14 @@ def parseArgs(args)
    end
 
    if (args.size() > 0)
+      minRelationTile = args.shift().to_i()
+   end
+
+   if (args.size() > 0)
+      maxRelationTile = args.shift().to_i()
+   end
+
+   if (args.size() > 0)
       maxTriples = args.shift().to_i()
    end
 
@@ -144,28 +161,28 @@ def parseArgs(args)
       exit(4)
    end
 
-   if (minEntityTile < 1 || maxEntityTile > NUM_TILES)
-      puts "Entity tiles must be in [1, #{NUM_TILES}]."
+   if (minEntityTile < 1 || maxEntityTile > NUM_TILES || minRelationTile < 1 || maxRelationTile > NUM_TILES)
+      puts "Entity/Relation tiles must be in [1, #{NUM_TILES}]."
       exit(5)
    end
 
-   if (minEntityTile > maxEntityTile)
-      puts "Entity tile max must be greater than min."
+   if (minEntityTile > maxEntityTile || minRelationTile > maxRelationTile)
+      puts "Entity/Relation tile max must be greater than min."
       exit(6)
    end
 
-   return minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples, suffix
+   return minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples, suffix
 end
 
 def main(args)
-   minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples, suffix = parseArgs(args)
+   minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples, suffix = parseArgs(args)
 
-   datasetDir = File.join(Constants::RAW_DATA_PATH, formatDatasetName(suffix, minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples))
+   datasetDir = File.join(Constants::RAW_DATA_PATH, formatDatasetName(suffix, minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples))
    FileUtils.mkdir_p(datasetDir)
 
    puts "Generating #{datasetDir} ..."
 
-   triples = fetchTriples(minProbability, maxProbability, minEntityTile, maxEntityTile, maxTriples)
+   triples = fetchTriples(minProbability, maxProbability, minEntityTile, maxEntityTile, minRelationTile, maxRelationTile, maxTriples)
 
    writeEntities(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
    writeRelations(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)

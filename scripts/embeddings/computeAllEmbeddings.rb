@@ -179,9 +179,7 @@ def runAll(experiments)
    experiments.each{|experiment|
       pool.process{
          begin
-            # runExperiment(experiment, false)
-            # TEST
-            puts experiment
+            runExperiment(experiment, false)
          rescue Exception => ex
             puts "Failed to train #{getId(experiment)}"
             puts ex.message()

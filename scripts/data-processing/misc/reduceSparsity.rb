@@ -60,12 +60,12 @@ def collapseIdMap(dataDir, outDir, collapseMap)
    inPath = File.join(dataDir, Constants::RAW_RELATION_MAPPING_FILENAME)
    outPath = File.join(outDir, Constants::RAW_RELATION_MAPPING_FILENAME)
 
-   # Remember that Ruby hashs maintain order.
-   mapping = Load.idMapping(inPath, false)
-   mapping.delete_if{|key, value| collapseMap.has_key?(key)}
+   # We need to assign new ids to the relations because holes are not allowed in the short ids (second value in the mapping row).
+   relationIds = Load.idMapping(inPath, false).keys()
+   relationIds.delete_if{|key| collapseMap.has_key?(key)}
 
    File.open(outPath, 'w'){|file|
-      file.puts(mapping.to_a().map{|key, value| "#{key}\t#{value}"}.join("\n"))
+      file.puts(relationIds.each_with_index().to_a().map{|id, index| "#{id}\t#{index}"}.join("\n"))
    }
 end
 

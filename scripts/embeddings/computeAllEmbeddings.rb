@@ -1,4 +1,5 @@
 require_relative 'computeEmbeddings'
+require_relative '../lib/constants'
 require_relative '../lib/distance'
 require_relative '../lib/embedding/constants'
 
@@ -8,6 +9,8 @@ require 'open3'
 
 # gem install thread
 require 'thread/pool'
+
+# TODO(eriq): Must compile embedding programs first.
 
 NUM_THREADS = Etc.nprocessors - 1
 
@@ -53,10 +56,10 @@ UNCERTIAN_NELL_DIRS = [
 
 SPARSITY_DATA_DIRS = [
    'NELL_000_100_[001,100;010,040;600000]_201703310225',
-   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[010]',
    'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[020]',
-   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[030]',
-   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[040]'
+   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[040]',
+   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[050]',
+   'NELL_000_100_[001,100;010,040;600000]_201703310225_CR[060]',
 ].map{|basename| File.absolute_path(File.join(Constants::RAW_DATA_PATH, basename))}
 
 TRANSE_EXPERIMENTS = {
@@ -176,7 +179,9 @@ def runAll(experiments)
    experiments.each{|experiment|
       pool.process{
          begin
-            runExperiment(experiment)
+            # runExperiment(experiment, false)
+            # TEST
+            puts experiment
          rescue Exception => ex
             puts "Failed to train #{getId(experiment)}"
             puts ex.message()
@@ -190,7 +195,8 @@ def runAll(experiments)
 end
 
 def main(args)
-   experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS) + buildExperiments(SPARSITY_TRANSH_EXPERIMENTS)
+   # experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS) + buildExperiments(SPARSITY_TRANSH_EXPERIMENTS)
+   experiments = buildExperiments(SPARSITY_TRANSE_EXPERIMENTS)
 
    # experiments = buildExperiments(TRANSE_EXPERIMENTS) + buildExperiments(TRANSH_EXPERIMENTS)
    # Some methods require data from other experiments and must be run after.

@@ -23,6 +23,12 @@ EX_DATA_DIRS = [
    'FB15k_TR[200000]',
    'FB15k_TR[250000]',
    'FB15k_TR[300000]'
+   'FB15k_RR[050000]',
+   'FB15k_RR[100000]',
+   'FB15k_RR[150000]',
+   'FB15k_RR[200000]',
+   'FB15k_RR[250000]',
+   'FB15k_RR[300000]'
 ].map{|basename| File.absolute_path(File.join(Constants::RAW_DATA_PATH, basename))}
 
 EX_TRANSE_EXPERIMENTS = {

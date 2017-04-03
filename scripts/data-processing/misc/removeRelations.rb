@@ -45,18 +45,22 @@ def chooseRemovalRelations(dataDir, outDir, numRemove)
    return Set.new(removedRelations)
 end
 
+# The int indexes (second value in the file) needs to be re done since no holes are allowed.
 def removeRelationsFromMap(dataDir, outDir, removedRelations)
    inPath = File.join(dataDir, Constants::RAW_RELATION_MAPPING_FILENAME)
    outPath = File.join(outDir, Constants::RAW_RELATION_MAPPING_FILENAME)
 
    relationMap = Load.idMapping(inPath, false)
+   outputRelations = []
 
-   removedRelations.each{|relation|
-      relationMap.delete(relation)
+   relationMap.each{|id, index|
+      if (!removedRelations.include?(id))
+         outputRelations << "#{id}\t#{outputRelations.size()}"
+      end
    }
 
    File.open(outPath, 'w'){|file|
-      file.puts(relationMap.to_a().map{|relation| relation.join("\t")}.join("\n"))
+      file.puts(outputRelations.join("\n"))
    }
 end
 
@@ -85,7 +89,7 @@ end
 def parseArgs(args)
    if (args.size != 2 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
       puts "USAGE: ruby #{$0} <data dir> <num triples to remove>"
-      puts "   Output will be written in a new directory adjacent to |data dir|, called |data dir|_TR[N]"
+      puts "   Output will be written in a new directory adjacent to |data dir|, called |data dir|_RR[N]"
       puts "   Where 'N' is the number of relations to remove (zero padded to 6 digits)."
       puts "   'RR' stands for 'Relations Removed'."
       exit(1)

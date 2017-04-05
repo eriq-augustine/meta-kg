@@ -19,12 +19,10 @@ DEFAULT_MIN_PROBABILITY = 0.95
 DEFAULT_MAX_PROBABILITY = 1.00
 
 # Triples Per Entity sparsity target.
-DEFAULT_SPARSITY_TARGET_TPE = 6.6956
+DEFAULT_SPARSITY_TARGET_TPE = 3.3478
 
 # About the same as Freebase.
-# TEST
-# DEFAULT_MAX_TRIPLES = 600000
-DEFAULT_MAX_TRIPLES = 1000
+DEFAULT_MAX_TRIPLES = 600000
 
 def formatDatasetName(suffix, minProbability, maxProbability, sparsityTarget, maxTriples)
    probabilityString = "#{"%03d" % (minProbability * 100)}_#{"%03d" % (maxProbability * 100)}"
@@ -64,14 +62,14 @@ def groomTriples(allTriples, sparsityTarget, maxTriples)
    candidateEntities = nil
 
    allTriples.each_index{|index|
-      entityTriples[allTriples[index][Constants::HEAD]] << index
-      entityTriples[allTriples[index][Constants::TAIL]] << index
+      entityTriples[allTriples[index][Constants::HEAD].to_i()] << index
+      entityTriples[allTriples[index][Constants::TAIL].to_i()] << index
 
-      tripleEntities[index] << allTriples[index][Constants::HEAD]
-      tripleEntities[index] << allTriples[index][Constants::TAIL]
+      tripleEntities[index] << allTriples[index][Constants::HEAD].to_i()
+      tripleEntities[index] << allTriples[index][Constants::TAIL].to_i()
 
-      entityAdjacencies[allTriples[index][Constants::HEAD]] << allTriples[index][Constants::TAIL]
-      entityAdjacencies[allTriples[index][Constants::TAIL]] << allTriples[index][Constants::HEAD]
+      entityAdjacencies[allTriples[index][Constants::HEAD].to_i()] << allTriples[index][Constants::TAIL].to_i()
+      entityAdjacencies[allTriples[index][Constants::TAIL].to_i()] << allTriples[index][Constants::HEAD].to_i()
    }
    candidateEntities = Set.new(entityTriples.keys())
 
@@ -81,6 +79,8 @@ def groomTriples(allTriples, sparsityTarget, maxTriples)
       entityAdjacencies[entity].uniq!()
       entityAdjacencyCounts[entity] = entityAdjacencies[entity].size()
    }
+
+   puts "Stats computed"
 
    tripleIndexes = Set.new()
    activeEntities = Set.new()
@@ -130,6 +130,7 @@ def groomTriples(allTriples, sparsityTarget, maxTriples)
 
       tripleIndexes += entityTriples[bestEntity]
       activeEntities += entityAdjacencies[bestEntity]
+      activeEntities << bestEntity
 
       # Sync the sizes counts.
       numActiveTriples = tripleIndexes.size().to_f()
@@ -144,74 +145,13 @@ def groomTriples(allTriples, sparsityTarget, maxTriples)
       triples << allTriples[tripleIndex]
    }
 
-
-
-
-=begin
-   # Keep sizes handy to speed up.
-   numActiveTriples = allTriples.size()
-   numActiveEntities = activeEntities.size().to_f()
-
-   iteration = 1
-   while (numActiveTriples > maxTriples)
-      # Best candidate for removal.
-      bestRemoveEntity = nil
-      bestRemoveTPE = nil
-      bestRemoveCount = nil
-
-      activeEntities.each_with_index{|entity, index|
-         # Note that one entity is removed each iteration.
-         count = entityCounts[entity]
-         tpe = (numActiveTriples - count) / (numActiveEntities - 1)
-
-         if (bestRemoveEntity == nil || ((sparsityTarget - tpe).abs() < (sparsityTarget - bestRemoveTPE).abs()))
-            bestRemoveEntity = entity
-            bestRemoveTPE = tpe
-            bestRemoveCount = count
-         end
-
-         # If we are removing a 1, then don't bother trying to find a better entity.
-         # TODO(eriq): This is not exactly right, but saves a lot of time.
-         if (bestRemoveCount == 1 && index != 0)
-            break
-         end
-      }
-
-      activeEntities.delete(bestRemoveEntity)
-
-      # Recalcualte the stats
-      entityTriples[bestRemoveEntity].each{|tripleIndex|
-         tripleEntities[tripleIndex].each{|entity|
-            entityCounts[entity] -= 1
-         }
-
-         triplesToRemove << tripleIndex
-      }
-
-      numActiveTriples -= bestRemoveCount
-      numActiveEntities -= 1
-
-      puts "Finished iteration #{"%03d" % iteration} - #{numActiveTriples} (#{bestRemoveTPE})"
-      iteration += 1
-
-      if (iteration % MAINTENANCE_PERIOD == 0)
-         triplesToRemove = triplesToRemove.uniq()
-      end
-   end
-
-   triplesToRemove.uniq().sort().reverse()
-   triplesToRemove.each{|index|
-      triples.delete_at(index)
-   }
-=end
-
    return triples
 end
 
 def writeEntities(path, triples)
    entities = []
-   entities += triples.map{|triple| triple[0]}
-   entities += triples.map{|triple| triple[2]}
+   entities += triples.map{|triple| triple[Constants::HEAD]}
+   entities += triples.map{|triple| triple[Constants::TAIL]}
    entities.uniq!
 
    File.open(path, 'w'){|file|
@@ -220,7 +160,7 @@ def writeEntities(path, triples)
 end
 
 def writeRelations(path, triples)
-   relations = triples.map{|triple| triple[1]}
+   relations = triples.map{|triple| triple[Constants::RELATION]}
    relations.uniq!
 
    File.open(path, 'w'){|file|
@@ -231,7 +171,7 @@ end
 def writeTriples(path, triples)
     File.open(path, 'w'){|file|
       # Head, Tail, Relation
-      file.puts(triples.map{|triple| "#{triple[0]}\t#{triple[2]}\t#{triple[1]}"}.join("\n"))
+      file.puts(triples.map{|triple| triple.join("\t")}.join("\n"))
     }
 end
 

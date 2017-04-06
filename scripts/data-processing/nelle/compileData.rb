@@ -16,15 +16,30 @@ DEFAULT_MIN_CONFIDENCE = 0.99
 MIN_ENTITY_COUNT = 10
 MIN_RELATION_COUNT = 5
 
+# Returns [triple, ...], rejectedCount.
+def fetchTriples(dataDir, minConfidence)
+   return NellELoad.allTriples(dataDir, minConfidence)
+end
+
+# Returns [catPair, ...], rejectedCount.
+def fetchCats(dataDir, minConfidence)
+   return NellELoad.allCategories(dataDir, minConfidence)
+end
+
+# Returns [triple, ...]
+def fetchTestTriples(dataDir)
+   return NellELoad.testTriples(dataDir)
+end
+
 def getTriples(dataDir, minConfidence, includeCats)
-   triples, rejectedRelCount = NellELoad.allTriples(dataDir, minConfidence)
+   triples, rejectedRelCount = fetchTriples(dataDir, minConfidence)
 
    numRels = triples.size()
    numCats = 0
    rejectedCatCount = 0
 
    if (includeCats)
-      catPairs, rejectedCatCount = NellELoad.allCategories(dataDir, minConfidence)
+      catPairs, rejectedCatCount = fetchCats(dataDir, minConfidence)
       catTriples = catPairs.map{|catPair| catPair << NellE::CAT_RELATION_ID}
 
       numCats = catTriples.size()
@@ -103,12 +118,14 @@ def compileData(dataDir, minConfidence, ontologicalExpand, includeCats)
    outDir = File.join(Constants::RAW_DATA_PATH, "NELLE_#{"%05d" % (minConfidence * 10000).to_i()}_#{suffix}")
    FileUtils.mkdir_p(outDir)
 
+   puts "Creating new dataset in #{outDir}"
+
    NellELoad.writeEntities(File.join(outDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
    NellELoad.writeRelations(File.join(outDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)
 
    NellELoad.writeTriples(File.join(outDir, Constants::RAW_TRAIN_FILENAME), triples)
 
-   testTriples = NellELoad.testTriples(dataDir)
+   testTriples = fetchTestTriples(dataDir)
    if (ontologicalExpand)
       testTriples = Ontology.expand(testTriples, ontology, Ontology::DEFAULT_EXPAND_MAX_ITERATIONS, true)
    end
@@ -119,9 +136,9 @@ end
 def parseArgs(args)
    if (args.size() < 1 || args.size() > 4 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
       puts "USAGE: ruby #{$0} <data dir> [minimum confidence] [--ontologicalExpand] [--includeCats]"
-      puts "minimum confidence -- Default: #{DEFAULT_MIN_CONFIDENCE}"
-      puts "If --ontologicalExpand is supplied, then the ontology will be used to expand the triples."
-      puts "Id --includeCats is supplied, then cats will be added as triples using #{NellE::CAT_RELATION_ID} as the relation."
+      puts "   minimum confidence -- Default: #{DEFAULT_MIN_CONFIDENCE}"
+      puts "   If --ontologicalExpand is supplied, then the ontology will be used to expand the triples."
+      puts "   If --includeCats is supplied, then cats will be added as triples using #{NellE::CAT_RELATION_ID} as the relation."
       exit(1)
    end
 

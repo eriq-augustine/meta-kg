@@ -73,4 +73,24 @@ module NellE
       'NELL.08m.165.cesv.csv.PattCat.out',
       'NELL.08m.165.esv.csv.PromCat_General.out'
    ]
+
+   # For a stricter set of experiments.
+
+   STRICT_TRAINING_REL_FILENAMES = [
+      'NELL.08m.165.cesv.csv.CandRel.out',
+      'NELL.08m.165.cesv.csv.PattRel.out'
+   ]
+
+   STRICT_TRAINING_CAT_FILENAMES = [
+      'NELL.08m.165.cesv.csv.CandCat.out',
+      'NELL.08m.165.cesv.csv.PattCat.out'
+   ]
+
+   STRICT_TEST_REL_FILENAMES = [
+      'label-test-uniq-raw-rel.db.TRAIN'
+   ]
+
+   STRICT_TEST_CAT_FILENAMES = [
+      'label-test-uniq-raw-cat.db.TRAIN'
+   ]
 end

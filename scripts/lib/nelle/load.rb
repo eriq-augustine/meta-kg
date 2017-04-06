@@ -21,11 +21,11 @@ module NellELoad
    end
 
    # Just get all the unique triples as an Array.
-   def NellELoad.allTriples(sourceDir, minConfidence = 0.0)
+   def NellELoad.allTriples(sourceDir, minConfidence = 0.0, tripleFilenames = NellE::TRIPLE_FILENAMES)
       triples = []
       rejectedCount = 0
 
-      NellE::TRIPLE_FILENAMES.each{|filename|
+      tripleFilenames.each{|filename|
          newTriples, newRejectedCount = NellELoad.triples(File.join(sourceDir, filename), minConfidence)
 
          rejectedCount += newRejectedCount
@@ -70,11 +70,11 @@ module NellELoad
    end
 
    # Just get all the unique categories as an Array.
-   def NellELoad.allCategories(sourceDir, minConfidence = 0.0)
+   def NellELoad.allCategories(sourceDir, minConfidence = 0.0, catFilenames = NellE::CATEGORY_FILENAMES)
       cats = []
       rejectedCount = 0
 
-      NellE::CATEGORY_FILENAMES.each{|filename|
+      catFilenames.each{|filename|
          newCats, newRejectedCount = NellELoad.categories(File.join(sourceDir, filename), minConfidence)
 
          rejectedCount += newRejectedCount

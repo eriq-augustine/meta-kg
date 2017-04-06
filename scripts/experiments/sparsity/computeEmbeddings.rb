@@ -28,7 +28,8 @@ EX_DATA_DIRS = [
    'FB15k_RR[150000]',
    'FB15k_RR[200000]',
    'FB15k_RR[250000]',
-   'FB15k_RR[300000]'
+   'FB15k_RR[300000]',
+   'NELL_SPARSE_075_100_[3.3478;600000]_201704051023'
 ].map{|basename| File.absolute_path(File.join(Constants::RAW_DATA_PATH, basename))}
 
 EX_TRANSE_EXPERIMENTS = {
@@ -56,7 +57,8 @@ EX_TRANSH_EXPERIMENTS = {
 }
 
 def main(args)
-   experiments = buildExperiments(EX_TRANSE_EXPERIMENTS) + buildExperiments(EX_TRANSH_EXPERIMENTS)
+   # experiments = buildExperiments(EX_TRANSE_EXPERIMENTS) + buildExperiments(EX_TRANSH_EXPERIMENTS)
+   experiments = buildExperiments(EX_TRANSE_EXPERIMENTS)
    runAll(experiments)
 end
 

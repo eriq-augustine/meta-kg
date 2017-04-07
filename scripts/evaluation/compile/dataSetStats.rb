@@ -1,4 +1,5 @@
-require_relative './dataSetStats'
+require_relative '../../lib/constants'
+require_relative '../dataSetStats'
 
 NUM_REGEX = '\d+(?:\.\d+)?'
 DATA_STATS_HEADERS = [

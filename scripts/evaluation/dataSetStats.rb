@@ -34,30 +34,34 @@ def tripleStats(label, triples)
    triplesPerEntity = entityTripleCounts.values()
    triplesPerRelation = relationTripleCounts.values()
 
-   puts "#{label} Triples:"
-   puts "   Num Triples: #{triples.size()}"
+   content = []
 
-   puts "   Num Distinct Entities:  #{entities.size()}"
-   puts "   Num Distinct Relations: #{relations.size()}"
+   content << "#{label} Triples:"
+   content << "   Num Triples: #{triples.size()}"
 
-   puts "   Triples / Entities:  #{triples.size().to_f() / entities.size()}"
-   puts "   Triples / Relations: #{triples.size().to_f() / relations.size()}"
+   content << "   Num Distinct Entities:  #{entities.size()}"
+   content << "   Num Distinct Relations: #{relations.size()}"
 
-   puts "   Relations per Entity:"
-   puts "      Mean:   #{MathUtils.mean(relationsPerEntities)}"
-   puts "      Median: #{MathUtils.median(relationsPerEntities)}"
+   content << "   Triples / Entities:  #{triples.size().to_f() / entities.size()}"
+   content << "   Triples / Relations: #{triples.size().to_f() / relations.size()}"
 
-   puts "   Entities per Relation:"
-   puts "      Mean:   #{MathUtils.mean(entitiesPerRelation)}"
-   puts "      Median: #{MathUtils.median(entitiesPerRelation)}"
+   content << "   Relations per Entity:"
+   content << "      Mean:   #{MathUtils.mean(relationsPerEntities)}"
+   content << "      Median: #{MathUtils.median(relationsPerEntities)}"
 
-   puts "   Triples per Entity:"
-   puts "      Mean:   #{MathUtils.mean(triplesPerEntity)}"
-   puts "      Median: #{MathUtils.median(triplesPerEntity)}"
+   content << "   Entities per Relation:"
+   content << "      Mean:   #{MathUtils.mean(entitiesPerRelation)}"
+   content << "      Median: #{MathUtils.median(entitiesPerRelation)}"
 
-   puts "   Triples per Relation:"
-   puts "      Mean:   #{MathUtils.mean(triplesPerRelation)}"
-   puts "      Median: #{MathUtils.median(triplesPerRelation)}"
+   content << "   Triples per Entity:"
+   content << "      Mean:   #{MathUtils.mean(triplesPerEntity)}"
+   content << "      Median: #{MathUtils.median(triplesPerEntity)}"
+
+   content << "   Triples per Relation:"
+   content << "      Mean:   #{MathUtils.mean(triplesPerRelation)}"
+   content << "      Median: #{MathUtils.median(triplesPerRelation)}"
+
+   return content.join("\n")
 end
 
 def dataStats(dataDir)
@@ -73,24 +77,64 @@ def dataStats(dataDir)
       ['Valid', validTriples]
    ]
 
+   content = []
    statSets.each{|label, triples|
-      tripleStats(label, triples)
+      content << tripleStats(label, triples)
    }
+   return content.join("\n")
 end
 
 def loadArgs(args)
-   if (args.size != 1 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
-      puts "USAGE: ruby #{$0} <data dir>"
+   if (args.size() < 1 || args.size() > 2 || args.map{|arg| arg.gsub('-', '').downcase()}.include?('help'))
+      puts "USAGE: ruby #{$0} <data dir> --write"
+      puts "   Use --write to also write the output to a file called '#{Constants::STATS_FILENAME}' in the data directory."
       exit(1)
    end
 
-   return args.shift()
+   dataDir = args.shift()
+   writeToFile = false
+
+   if (args.size() > 0)
+      arg = args.shift()
+      if (arg != '--write')
+         puts "Unknown arg: #{arg}"
+         exit(2)
+      end
+
+      writeToFile = true
+   end
+
+   return dataDir, writeToFile
+end
+
+def genDataStats(dataDir, writeToStdout = false, writeToFile = true)
+   statsPath = File.join(dataDir, Constants::STATS_FILENAME)
+
+   # Check for the output file first.
+   existingStats = false
+   if (File.exists?(statsPath))
+      output = IO.read(statsPath)
+      existingStats = true
+   else
+      output = dataStats(dataDir)
+   end
+
+   if (writeToStdout)
+      puts output
+   end
+
+   if (writeToFile && !existingStats)
+      File.open(statsPath, 'w'){|file|
+         file.puts(output)
+      }
+   end
+
+   return output
 end
 
 def main(args)
-   dataDir = loadArgs(args)
-
-   dataStats(dataDir)
+   dataDir, writeToFile = loadArgs(args)
+   genDataStats(dataDir, true, writeToFile)
 end
 
 if ($0 == __FILE__)

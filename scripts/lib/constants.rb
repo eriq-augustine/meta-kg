@@ -20,6 +20,8 @@ module Constants
 
    RAW_TRIPLE_FILENAMES = [RAW_TEST_FILENAME, RAW_TRAIN_FILENAME, RAW_VALID_FILENAME]
 
+   STATS_FILENAME = 'stats.txt'
+
    # Paths
    DATA_PATH = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'data'))
    RAW_DATA_PATH = File.join(DATA_PATH, RAW_DIR_NAME)

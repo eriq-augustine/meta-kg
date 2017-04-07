@@ -5,7 +5,7 @@ require_relative '../../lib/embedding/constants'
 
 
 EX_DATA_DIRS = [
-   'NELLE_00000_INCLUDE_CATS_201704061505'
+   'NELLE_00000_INCLUDE_CATS_201704061535'
 ].map{|basename| File.absolute_path(File.join(Constants::RAW_DATA_PATH, basename))}
 
 EX_TRANSE_EXPERIMENTS = {

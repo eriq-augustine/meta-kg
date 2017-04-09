@@ -23,6 +23,9 @@ module Constants
    STATS_FILENAME = 'stats.txt'
    EMBEDDING_EVAL_FILENAME = 'eval.txt'
 
+   # These belong in the embedding directory.
+   EVAL_ENERGIES_FILENAME = 'eval_energies_full.txt'
+
    # Paths
    DATA_PATH = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'data'))
    RAW_DATA_PATH = File.join(DATA_PATH, RAW_DIR_NAME)

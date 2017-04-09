@@ -199,4 +199,24 @@ module Load
 
       return triples
    end
+
+   # Return: [[triple, energy], ...]
+   def Load.tripleEnergies(path, intKeys = true)
+      triples = []
+
+      File.open(path, 'r'){|file|
+         file.each{|line|
+            parts = line.split("\t").map{|part| part.strip()}
+            energy = parts.pop().to_f()
+
+            if (intKeys)
+               parts.map!{|part| part.to_i()}
+            end
+
+            triples << [parts, energy]
+         }
+      }
+
+      return triples
+   end
 end

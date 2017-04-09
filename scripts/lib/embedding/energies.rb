@@ -1,6 +1,9 @@
+require_relative 'load'
 require_relative 'transE'
 require_relative 'transH'
+require_relative '../constants'
 require_relative '../distance'
+require_relative '../load'
 
 require 'etc'
 
@@ -98,6 +101,126 @@ module Energies
       energies.delete_if{|key, value| value == -1}
 
       return energies
+   end
+
+   # Compute the energies of all the triples in a file and their corruptions.
+   # A block is required.
+   # The block will get called with: [[triple, energy], ...]
+   # It will get called every batch of corruptions from the base triple.
+   # The list may be empty.
+   # If embeddingDir is properly formatted (by scripts/embeddings/computeEmbeddings.rb),
+   # then embeddingMethod and distanceType can be inferred.
+   def Energies.computeTripleFile(triplesPath, datasetDir, embeddingDir, embeddingMethod = nil, distanceType = nil, &block)
+      if (block == nil)
+         raise("A block is required")
+      end
+
+      energyMethod = nil
+      if (embeddingMethod == nil && distanceType == nil)
+         energyMethod = Energies.getEnergyMethodFromPath(embeddingDir)
+      else 
+         energyMethod = Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
+      end
+
+      baseTriples = Load.triples(triplesPath, false)
+      entityMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), false)
+      relationMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), false)
+      entityEmbeddings, relationEmbeddings = LoadEmbedding.vectors(embeddingDir)
+
+      Energies.computeCorruptionEnergies(
+         baseTriples, 
+         entityMapping, relationMapping,
+         entityEmbeddings, relationEmbeddings, energyMethod,
+         &block
+      )
+   end
+
+   def Energies.computeCorruptionEnergies(
+         baseTriples, 
+         entityMapping, relationMapping,
+         entityEmbeddings, relationEmbeddings, energyMethod,
+         &block)
+      if (block == nil)
+         raise("A block is required")
+      end
+
+      # Note that we use the base triples themselves and not the mapping to pull relations.
+      # Is is possible we embedded on a relation that we do not know about.
+      relations = baseTriples.map{|triple| triple[Constants::RELATION]}.uniq()
+
+      seenCorruptions = Set.new()
+      corruptions = []
+
+      relations.each{|relation|
+         seenCorruptions.clear()
+
+         validTriples = baseTriples.select{|triple| triple[Constants::RELATION] == relation}
+         validTriples.each{|validTriple|
+            corruptions.clear()
+
+            # Corrupt the head and tail for each triple.
+            [Constants::HEAD, Constants::TAIL].each{|corruptionTarget|
+               entityMapping.keys().each{|corruptComponent|
+                  if (corruptionTarget == Constants::HEAD)
+                     head = corruptComponent
+                     tail = validTriple[Constants::TAIL]
+                  else
+                     head = validTriple[Constants::HEAD]
+                     tail = corruptComponent
+                  end
+
+                  id = "#{head}:#{tail}"
+                  if (seenCorruptions.include?(id))
+                     next
+                  end
+
+                  seenCorruptions << id
+
+                  corruption = Array.new(3, 0)
+                  corruption[Constants::HEAD] = head
+                  corruption[Constants::TAIL] = tail
+                  corruption[Constants::RELATION] = relation
+
+                  corruptions << corruption
+               }
+            }
+
+            energies = Energies.computeEnergies(
+               corruptions,
+               entityMapping, relationMapping,
+               entityEmbeddings, relationEmbeddings, energyMethod,
+               false, true
+            )
+            corruptions.clear()
+
+            # Right now the energies are in a map with string key, turn into a list.
+            # [[triple, energy], ...]
+            # No need to convert the keys to ints now, since we will just write them out.
+            energies = energies.to_a().map{|id, energy|
+               head, tail = id.split(':')
+               [[head, tail, relation], energy]
+            }
+
+            block.call(energies)
+
+            energies.clear()
+         }
+      }
+   end
+
+   # Assume the embedding dir is properly formatted
+   # (by scripts/embeddings/computeEmbeddings.rb), and infer an energy method from it.
+   def Energies.getEnergyMethodFromPath(embeddingDir)
+      embeddingMethod = File.basename(embeddingDir).match(/^([^_]+)_/)[1]
+      distanceType = nil
+
+      if (embeddingDir.include?("distance:#{Distance::L1_ID_INT}"))
+         distanceType = Distance::L1_ID_STRING
+      elsif (embeddingDir.include?("distance:#{Distance::L2_ID_INT}"))
+         distanceType = Distance::L2_ID_STRING
+      end
+
+      return Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
    end
 
    # Given an embedding method and distance type, return a proc that will compute the energy.

@@ -6,6 +6,7 @@ require_relative '../distance'
 require_relative '../load'
 
 require 'etc'
+require 'set'
 
 # gem install thread
 require 'thread/pool'

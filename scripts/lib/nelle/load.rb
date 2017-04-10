@@ -8,16 +8,42 @@ module NellELoad
       File.open(path, 'r'){|file|
          file.each{|line|
             parts = line.split("\t").map{|part| part.strip()}
-            if (parts[3].to_f() < minConfidence)
+
+            confidence = parts.pop().to_f()
+            parts.map!{|part| part.to_i()}
+
+            if (confidence < minConfidence)
                rejectedCount += 1
                next
             end
 
-            triples << parts[0...3].map{|part| part.to_i()}
+            triples << parts
          }
       }
 
       return triples, rejectedCount
+   end
+
+   def NellELoad.triplesWithRejected(path, minConfidence = 0.0)
+      triples = []
+      rejected = []
+
+      File.open(path, 'r'){|file|
+         file.each{|line|
+            parts = line.split("\t").map{|part| part.strip()}
+
+            confidence = parts.pop().to_f()
+            parts.map!{|part| part.to_i()}
+
+            if (confidence < minConfidence)
+               rejected << parts
+            else
+               triples << parts
+            end
+         }
+      }
+
+      return triples, rejected
    end
 
    # Just get all the unique triples as an Array.

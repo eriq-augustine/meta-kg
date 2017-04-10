@@ -55,29 +55,29 @@ module Energies
 
                if (entityMapping == nil)
                   ok, energy = energyMethod.call(
-                     entityEmbeddings[triple[0]],
-                     entityEmbeddings[triple[1]],
-                     relationEmbeddings[triple[2]],
-                     triple[0],
-                     triple[1],
-                     triple[2]
+                     entityEmbeddings[triple[Constants::HEAD]],
+                     entityEmbeddings[triple[Constants::TAIL]],
+                     relationEmbeddings[triple[Constants::RELATION]],
+                     triple[Constants::HEAD],
+                     triple[Constants::TAIL],
+                     triple[Constants::RELATION]
                   )
                else
                   # It is possible for the entity/relation to not exist if it got filtered
                   # out for having too low a confidence score.
                   # For these, just leave them out of the energy mapping.
-                  if (!entityMapping.has_key?(triple[0]) || !entityMapping.has_key?(triple[1]) || !relationMapping.has_key?(triple[2]))
+                  if (!entityMapping.has_key?(triple[Constants::HEAD]) || !entityMapping.has_key?(triple[Constants::TAIL]) || !relationMapping.has_key?(triple[Constants::RELATION]))
                      next
                   end
 
                   begin
                      ok, energy = energyMethod.call(
-                        entityEmbeddings[entityMapping[triple[0]]],
-                        entityEmbeddings[entityMapping[triple[1]]],
-                        relationEmbeddings[relationMapping[triple[2]]],
-                        entityMapping[triple[0]],
-                        entityMapping[triple[1]],
-                        relationMapping[triple[2]]
+                        entityEmbeddings[entityMapping[triple[Constants::HEAD]]],
+                        entityEmbeddings[entityMapping[triple[Constants::TAIL]]],
+                        relationEmbeddings[relationMapping[triple[Constants::RELATION]]],
+                        entityMapping[triple[Constants::HEAD]],
+                        entityMapping[triple[Constants::TAIL]],
+                        relationMapping[triple[Constants::RELATION]]
                      )
                   rescue Exception => ex
                      # TEST
@@ -103,14 +103,19 @@ module Energies
       return energies
    end
 
-   # Compute the energies of all the triples in a file and their corruptions.
+   def Energies.computeTripleFile(triplesPath, datasetDir, embeddingDir, embeddingMethod = nil, distanceType = nil, corrupt = true, &block)
+      triples = Load.triples(triplesPath, false)
+      Energies.computeTriples(triples, datasetDir, embeddingDir, embeddingMethod, distanceType, corrupt, &block)
+   end
+
+   # Compute the energies of all the triples in a file and possibly their corruptions.
    # A block is required.
+   # If |corrupt| is true, all corruptions will be computes (usaully A LOT).
    # The block will get called with: [[triple, energy], ...]
-   # It will get called every batch of corruptions from the base triple.
    # The list may be empty.
    # If embeddingDir is properly formatted (by scripts/embeddings/computeEmbeddings.rb),
    # then embeddingMethod and distanceType can be inferred.
-   def Energies.computeTripleFile(triplesPath, datasetDir, embeddingDir, embeddingMethod = nil, distanceType = nil, &block)
+   def Energies.computeTriples(triples, datasetDir, embeddingDir, embeddingMethod = nil, distanceType = nil, corrupt = true, &block)
       if (block == nil)
          raise("A block is required")
       end
@@ -122,17 +127,60 @@ module Energies
          energyMethod = Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
       end
 
-      baseTriples = Load.triples(triplesPath, false)
       entityMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), false)
       relationMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), false)
       entityEmbeddings, relationEmbeddings = LoadEmbedding.vectors(embeddingDir)
 
-      Energies.computeCorruptionEnergies(
+      if (corrupt)
+         Energies.computeCorruptionEnergies(
+            triples, 
+            entityMapping, relationMapping,
+            entityEmbeddings, relationEmbeddings, energyMethod,
+            &block
+         )
+      else
+         Energies.computeSimpleEnergies(
+            triples, 
+            entityMapping, relationMapping,
+            entityEmbeddings, relationEmbeddings, energyMethod,
+            &block
+         )
+      end
+   end
+
+   def Energies.computeSimpleEnergies(
          baseTriples, 
          entityMapping, relationMapping,
          entityEmbeddings, relationEmbeddings, energyMethod,
-         &block
-      )
+         &block)
+      if (block == nil)
+         raise("A block is required")
+      end
+
+      # Note that we use the base triples themselves and not the mapping to pull relations.
+      # It is possible we embedded on a relation that we do not know about.
+      relations = baseTriples.map{|triple| triple[Constants::RELATION]}.uniq()
+
+      relations.each{|relation|
+         validTriples = baseTriples.select{|triple| triple[Constants::RELATION] == relation}
+
+         energies = Energies.computeEnergies(
+            validTriples,
+            entityMapping, relationMapping,
+            entityEmbeddings, relationEmbeddings, energyMethod,
+            false, false
+         )
+         validTriples.clear()
+
+         # Right now the energies are in a map with string key, turn into a list.
+         # [[triple, energy], ...]
+         # No need to convert the keys to ints now, since we will just write them out.
+         energies = energies.to_a().map{|id, energy|
+            [id.split(':'), energy]
+         }
+
+         block.call(energies)
+      }
    end
 
    def Energies.computeCorruptionEnergies(

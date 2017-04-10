@@ -25,6 +25,8 @@ module Constants
 
    # These belong in the embedding directory.
    EVAL_ENERGIES_FILENAME = 'eval_energies_full.txt'
+   POSITIVE_ENERGIES_FILENAME = 'eval_energies_positive.txt'
+   NEGATIVE_ENERGIES_FILENAME = 'eval_energies_negative.txt'
 
    # Paths
    DATA_PATH = File.absolute_path(File.join(File.dirname(__FILE__), '..', '..', 'data'))

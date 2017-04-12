@@ -219,4 +219,31 @@ module Load
 
       return triples
    end
+
+   def Load.writeEntities(path, triples)
+      entities = []
+      entities += triples.map{|triple| triple[Constants::HEAD]}
+      entities += triples.map{|triple| triple[Constants::TAIL]}
+      entities.uniq!()
+
+      File.open(path, 'w'){|file|
+         file.puts(entities.map.with_index{|entity, index| "#{entity}\t#{index}"}.join("\n"))
+      }
+   end
+
+   def Load.writeRelations(path, triples)
+      relations = triples.map{|triple| triple[Constants::RELATION]}
+      relations.uniq!()
+
+      File.open(path, 'w'){|file|
+         file.puts(relations.map.with_index{|relation, index| "#{relation}\t#{index}"}.join("\n"))
+      }
+   end
+
+   def Load.writeTriples(path, triples)
+      File.open(path, 'w'){|file|
+         # Head, Tail, Relation
+         file.puts(triples.map{|triple| "#{triple[Constants::HEAD]}\t#{triple[Constants::TAIL]}\t#{triple[Constants::RELATION]}"}.join("\n"))
+      }
+   end
 end

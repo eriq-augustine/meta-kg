@@ -7,7 +7,7 @@ require_relative '../lib/load'
 
 DEFAULT_NUM_PAIRS = 500
 BASE_OUTPUT_NAME = 'topEntityPairs'
-PAIRS_PAGE_SIZE = 100000
+PAIRS_PAGE_SIZE = 10000
 
 # Here we are taking a performance hit to make the program simpler.
 # We will be computing the corruptions each triple at a time.

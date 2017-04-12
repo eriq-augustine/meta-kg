@@ -124,7 +124,7 @@ module Energies
       energyMethod = nil
       if (embeddingMethod == nil && distanceType == nil)
          energyMethod = Energies.getEnergyMethodFromPath(embeddingDir)
-      else 
+      else
          energyMethod = Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
       end
 
@@ -134,14 +134,14 @@ module Energies
 
       if (corrupt)
          Energies.computeCorruptionEnergies(
-            triples, 
+            triples,
             entityMapping, relationMapping,
             entityEmbeddings, relationEmbeddings, energyMethod,
             &block
          )
       else
          Energies.computeSimpleEnergies(
-            triples, 
+            triples,
             entityMapping, relationMapping,
             entityEmbeddings, relationEmbeddings, energyMethod,
             &block
@@ -150,7 +150,7 @@ module Energies
    end
 
    def Energies.computeSimpleEnergies(
-         baseTriples, 
+         baseTriples,
          entityMapping, relationMapping,
          entityEmbeddings, relationEmbeddings, energyMethod,
          &block)
@@ -185,7 +185,7 @@ module Energies
    end
 
    def Energies.computeCorruptionEnergies(
-         baseTriples, 
+         baseTriples,
          entityMapping, relationMapping,
          entityEmbeddings, relationEmbeddings, energyMethod,
          &block)

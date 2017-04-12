@@ -7,7 +7,7 @@ require_relative '../lib/load'
 
 DEFAULT_NUM_PAIRS = 500
 BASE_OUTPUT_NAME = 'topEntityPairs'
-PAIRS_PAGE_SIZE = 10000
+PAIRS_PAGE_SIZE = 100000
 
 # Here we are taking a performance hit to make the program simpler.
 # We will be computing the corruptions each triple at a time.
@@ -18,13 +18,25 @@ def computeTopPairs(dataDir, embeddingDir, numPairs)
    # We are corrupting the test set.
    triples = Load.triples(File.join(dataDir, Constants::RAW_TEST_FILENAME), false)
 
-   entityMap = Load.idMapping(File.join(dataDir, Constants::RAW_ENTITY_MAPPING_FILENAME), false)
+   energyMethod = Energies.getEnergyMethodFromPath(embeddingDir)
+   entityMapping = Load.idMapping(File.join(dataDir, Constants::RAW_ENTITY_MAPPING_FILENAME), false)
+   relationMapping = Load.idMapping(File.join(dataDir, Constants::RAW_RELATION_MAPPING_FILENAME), false)
+   entityEmbeddings, relationEmbeddings = LoadEmbedding.vectors(embeddingDir)
 
    triples.each{|triple|
+      # TEST
+      puts "Computing #{triple} ..."
+
       corruptionEnergies = []
 
-      Energies.computeTriples([triple], dataDir, embeddingDir, nil, nil, true){|energies|
+      Energies.computeCorruptionEnergies(
+            [triple],
+            entityMapping, relationMapping,
+            entityEmbeddings, relationEmbeddings, energyMethod) {|energies|
          corruptionEnergies += energies
+
+         # TEST
+         puts "   Got #{energies.size()} energies"
       }
 
       topPairs = corruptionEnergies.sort{|a, b| a[1] <=> b[1]}.first(numPairs)
@@ -33,9 +45,12 @@ def computeTopPairs(dataDir, embeddingDir, numPairs)
       topPairs.map!{|triple, energy| [triple[Constants::HEAD], triple[Constants::TAIL]]}
 
       # Translate the ids into surrogate keys.
-      topPairs.map!{|head, tail| [entityMap[head], entityMap[tail]]}
+      topPairs.map!{|head, tail| [entityMapping[head], entityMapping[tail]]}
 
       allPairs += topPairs
+
+      # TEST
+      puts "Computed #{triple}"
    }
 
    return allPairs.uniq()

@@ -58,10 +58,27 @@ EX_TRANSH_EXPERIMENTS = {
    }
 }
 
+EX_TRANSR_EXPERIMENTS = {
+   'emethod' => 'TransR',
+   'data' => EX_DATA_DIRS,
+   'args' => {
+      'size' => [100],
+      'rate' => [0.001],
+      'margin' => [1.0],
+      'method' => [Embedding::METHOD_BERNOULLI],
+      'distance' => [Distance::L1_ID_INT]
+   }
+}
+
 def main(args)
-   experiments = buildExperiments(EX_TRANSE_EXPERIMENTS) + buildExperiments(EX_TRANSH_EXPERIMENTS)
+   # experiments = buildExperiments(EX_TRANSE_EXPERIMENTS) + buildExperiments(EX_TRANSH_EXPERIMENTS)
    # experiments = buildExperiments(EX_TRANSE_EXPERIMENTS)
-   runAll(experiments)
+   experiments = buildTransRExperiments(EX_TRANSR_EXPERIMENTS)
+
+   puts experiments
+
+   # TEST
+   #runAll(experiments)
 end
 
 if (__FILE__ == $0)

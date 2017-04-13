@@ -35,7 +35,7 @@ cd "${WORK_DIR}"
 
 echo "Running PCRA ..."
 
-# python2 PCRA.py > out_pcra.txt 2> out_pcra.err
+python2 PCRA.py > out_pcra.txt 2> out_pcra.err
 
 if [[ "$?" -ne 0 ]]; then
    echo "Failed to run PCRA"

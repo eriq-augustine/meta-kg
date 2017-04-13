@@ -1,43 +1,72 @@
 require_relative '../../lib/constants'
 require_relative '../../lib/load'
+require_relative '../../lib/reverb/constants'
+require_relative '../../lib/reverb/load'
 
 require 'date'
 require 'fileutils'
+require 'set'
 
 TRAINING_PERCENT = 0.90
+FLAG_ANNOTATIONS = '--annotations'
 
-def getTriples(dataPath)
-   triples = []
+# Will get annotations, reject bad ones, and write the full set to the out dir.
+def fetchAnnotations(dataDir, outDir, trainingTriples)
+   relations = Set.new(trainingTriples.map{|triple| triple[Constants::RELATION]})
 
-   File.open(dataPath, 'r'){|file|
-      file.each{|line|
-         parts = line.split("\t").map{|part| part.strip()}
-         confidence = parts.pop().to_f()
+   entities = []
+   trainingTriples.each{|triple|
+      entities << triple[Constants::HEAD]
+      entities << triple[Constants::TAIL]
+   }
+   entities = Set.new(entities)
 
-         triple = Array.new(3)
-         triple[Constants::HEAD] = parts[0]
-         triple[Constants::TAIL] = parts[2]
-         triple[Constants::RELATION] = parts[1]
+   annotations = ReverbLoad.annotations(File.join(dataDir, Reverb::ANNOTATIONS_FILE_RELPATH))
+   testSet = []
 
-         triples << triple
-      }
+   # Go backwards.
+   rejectedCount = 0
+   (0...(annotations.size())).to_a().reverse().each{|i|
+      annotation = annotations[i]
+
+      if (!entities.include?(annotation[0][Constants::HEAD]))
+         puts "Rejecting annotation because head (#{annotation[0][Constants::HEAD]}) is not a known entity."
+         annotations.delete_at(i)
+         rejectedCount += 1
+         next
+      end
+
+      if (!entities.include?(annotation[0][Constants::TAIL]))
+         puts "Rejecting annotation because tail (#{annotation[0][Constants::TAIL]}) is not a known entity."
+         annotations.delete_at(i)
+         rejectedCount += 1
+         next
+      end
+
+      if (!entities.include?(annotation[0][Constants::RELATION]))
+         puts "Rejecting annotation because relation (#{annotation[0][Constants::RELATION]}) is not a known relaiton."
+         annotations.delete_at(i)
+         rejectedCount += 1
+         next
+      end
    }
 
-   return triples.uniq()
+   puts "Rejected #{rejectedCount} / #{annotations.size() + rejectedCount} annotations for unknown components."
+
+   # Write out the full annotations for reference.
+   File.open(File.join(outDir, Reverb::ANNOTATIONS_RAW_FILENAME), 'w'){|file|
+      file.puts(annotations.map{|annotation| annotation.flatten().join("\t")}.join("\n"))
+   }
+
+   # Remove negative examples.
+   annotations.delete_if{|annotation| !annotation[1]}
+
+   return annotations.map{|annotation| annotation[0]}
 end
 
-def compileData(dataFile, suffix)
-   triples = getTriples(dataFile)
-
-   outDir = File.join(Constants::RAW_DATA_PATH, "REVERB_#{suffix}")
-   FileUtils.mkdir_p(outDir)
-
-   puts "Creating new dataset in #{outDir}"
-
-   Load.writeEntities(File.join(outDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
-   Load.writeRelations(File.join(outDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)
-
-   # TODO(eriq): We probably need smarter splitting?
+# Break up into train, test, and valid.
+# Returns [train, test, valid]
+def partitionTriples(triples)
    trainingSize = (triples.size() * TRAINING_PERCENT).to_i()
 
    # Both test and valid sets will get this count.
@@ -49,25 +78,58 @@ def compileData(dataFile, suffix)
    testSet = triples.slice(trainingSize, testSize)
    validSet = triples.slice(trainingSize + testSize, testSize)
 
+   return trainingSet, testSet, validSet
+end
+
+def compileData(dataDir, suffix, useAnnotations)
+   triples = ReverbLoad.triples(File.join(dataDir, Reverb::DATA_FILENAME))
+
+   if (useAnnotations)
+      suffix = "_ANNOTATIONS_#{suffix}"
+   end
+
+   outDir = File.join(Constants::RAW_DATA_PATH, "REVERB_#{suffix}")
+   FileUtils.mkdir_p(outDir)
+
+   puts "Creating new dataset in #{outDir}"
+
+   Load.writeEntities(File.join(outDir, Constants::RAW_ENTITY_MAPPING_FILENAME), triples)
+   Load.writeRelations(File.join(outDir, Constants::RAW_RELATION_MAPPING_FILENAME), triples)
+
+   if (useAnnotations)
+      trainingSet = triples
+      validSet = []
+      testSet = fetchAnnotations(dataDir, outDir, triples)
+   else
+      trainingSet, testSet, validSet = partitionTriples(triples)
+   end
+
    Load.writeTriples(File.join(outDir, Constants::RAW_TRAIN_FILENAME), trainingSet)
    Load.writeTriples(File.join(outDir, Constants::RAW_TEST_FILENAME), testSet)
    Load.writeTriples(File.join(outDir, Constants::RAW_VALID_FILENAME), validSet)
 end
 
 def parseArgs(args)
-   if (args.size() < 1 || args.size() > 2 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
-      puts "USAGE: ruby #{$0} <data file> [suffix]"
+   if (args.size() < 1 || args.size() > 3 || args.map{|arg| arg.downcase().strip().sub(/^-+/, '')}.include?('help'))
+      puts "USAGE: ruby #{$0} <data dir> [suffix] [#{FLAG_ANNOTATIONS}]"
+      puts "   If #{FLAG_ANNOTATIONS} is supplied, then the test set will come directly from the annotations file."
       exit(1)
    end
 
-   dataFile = args.shift()
+   dataDir = args.shift()
    suffix = DateTime.now().strftime('%Y%m%d%H%M')
+   useAnnotations = false
+
+   if (args.include?(FLAG_ANNOTATIONS))
+      useAnnotations = true
+      args.delete(FLAG_ANNOTATIONS)
+   end
 
    if (args.size() > 0)
       suffix = args.shift()
    end
 
-   return dataFile, suffix
+   return dataDir, suffix, useAnnotations
 end
 
 def main(args)

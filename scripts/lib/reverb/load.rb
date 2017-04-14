@@ -51,4 +51,23 @@ module ReverbLoad
 
       return data
    end
+
+   def ReverbLoad.fullFileFormat(path)
+      triples = []
+
+      File.open(path, 'r'){|file|
+         file.each{|line|
+            parts = line.split("\t").map{|part| part.strip().downcase()}
+
+            triple = Array.new(3)
+            triple[Constants::HEAD] = parts[4]
+            triple[Constants::TAIL] = parts[6]
+            triple[Constants::RELATION] = parts[5]
+
+            triples << triple
+         }
+      }
+
+      return triples
+   end
 end

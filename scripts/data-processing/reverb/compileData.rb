@@ -24,6 +24,26 @@ def fetchAnnotations(dataDir, outDir, trainingTriples)
    annotations = ReverbLoad.annotations(File.join(dataDir, Reverb::ANNOTATIONS_FILE_RELPATH))
    testSet = []
 
+   # TEST
+=begin
+   annotations = []
+   File.open('test2.txt', 'r'){|file|
+      file.each{|line|
+         parts = line.split("\t").map{|part| part.strip().downcase().gsub(' ', '_')}
+         valid = parts.shift() == '1'
+         parts.shift()
+
+         parts[1], parts[2] = parts[2], parts[1]
+
+         annotations << [
+            parts,
+            valid,
+            1.0
+         ]
+      }
+   }
+=end
+
    # Go backwards.
    rejectedCount = 0
    (0...(annotations.size())).to_a().reverse().each{|i|
@@ -85,7 +105,7 @@ def compileData(dataDir, suffix, useAnnotations)
    triples = ReverbLoad.triples(File.join(dataDir, Reverb::DATA_FILENAME))
 
    if (useAnnotations)
-      suffix = "_ANNOTATIONS_#{suffix}"
+      suffix = "ANNOTATIONS_#{suffix}"
    end
 
    outDir = File.join(Constants::RAW_DATA_PATH, "REVERB_#{suffix}")

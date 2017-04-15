@@ -8,8 +8,6 @@ require_relative '../lib/load'
 require 'set'
 
 ENERGY_THRESHOLD_STEP = 0.50
-ENERGY_THRESHOLD_MIN = 3.0
-ENERGY_THRESHOLD_MAX = 10.0
 
 # Override this.
 def loadPositiveTriples(dataDir)
@@ -164,11 +162,15 @@ def main(args)
    puts Histogram.generate(energies.map{|triple, energy| energy})
    puts ''
 
+   min, max = energies.map{|triple, energy| energy}.minmax()
+   min = min.to_i().to_f()
+   max = (max + 1.0).to_i().to_f()
+
    puts "AUC: #{calcAUC(energies, positiveTriples, negativeTriples)}"
    puts ''
 
    puts ("%10s %10s %10s %10s\n" % ["threshold", "F1", "Precision", "Recall"])
-   (ENERGY_THRESHOLD_MIN..ENERGY_THRESHOLD_MAX).step(ENERGY_THRESHOLD_STEP).each{|threshold|
+   (min..max).step(ENERGY_THRESHOLD_STEP).each{|threshold|
       threshold = threshold.round(2)
       precision, recall = calcStats(energies, positiveTriples, negativeTriples, threshold)
 

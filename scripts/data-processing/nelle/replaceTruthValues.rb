@@ -13,6 +13,10 @@ require 'fileutils'
 
 ENERGY_FILE = 'energies.txt'
 
+# Energies that actually get used in NellE.
+# head, tail, relation, energy, normalized energy
+USED_ENERGY_FILE = 'used_nelle_energies.txt'
+
 PAGE_SIZE = 1000
 
 def loadEnergiesFromFile(path)
@@ -41,6 +45,7 @@ def getEnergies(sourceDir, datasetDir, embeddingDir, embeddingMethod, distanceTy
    energyPath = File.join(embeddingDir, ENERGY_FILE)
 
    if (File.exists?(energyPath))
+      puts "Found precomputed energies: #{energyPath}"
       return loadEnergiesFromFile(energyPath)
    end
 
@@ -64,15 +69,18 @@ def getEnergies(sourceDir, datasetDir, embeddingDir, embeddingMethod, distanceTy
    return energies
 end
 
+# Turn each energy value into 2-value array: [energy, normlaizedEnergy].
 def normalizeEnergies(energies)
+   puts "Normalizing #{energies.size()} energies."
+
    minEnergy, maxEnergy = energies.values().minmax()
 
    energies.keys().each{|key|
-      energies[key] = 1.0 - ((energies[key] - minEnergy) / (maxEnergy - minEnergy))
+      energies[key] = [energies[key], 1.0 - ((energies[key] - minEnergy) / (maxEnergy - minEnergy))]
    }
 end
 
-def replaceEnergies(sourceDir, outDir, energies)
+def replaceEnergies(sourceDir, outDir, embeddingDir, energies)
    FileUtils.cp_r(sourceDir, outDir)
 
    NellE::REPLACEMENT_TRIPLE_FILENAMES.each{|filename|
@@ -85,11 +93,13 @@ def replaceEnergies(sourceDir, outDir, energies)
          }
       }
 
+      usedEnergies = []
       triples.each_index{|i|
          id = triples[i][0...3].join(':')
 
          if (energies.has_key?(id))
-            triples[i][3] = energies[id]
+            triples[i][3] = energies[id][1]
+            usedEnergies << triples[i][0...3] + energies[id]
          end
       }
 
@@ -114,7 +124,8 @@ def replaceEnergies(sourceDir, outDir, energies)
          id = (triples[i][0...2].push(NellE::CAT_RELATION_ID)).join(':')
 
          if (energies.has_key?(id))
-            triples[i][2] = energies[id]
+            triples[i][2] = energies[id][1]
+            usedEnergies << triples[i][0...2] + [NellE::CAT_RELATION_ID] + energies[id]
          end
       }
 
@@ -122,6 +133,13 @@ def replaceEnergies(sourceDir, outDir, energies)
          triples.each_slice(PAGE_SIZE){|page|
             file.puts(page.map{|triple| triple.join("\t")}.join("\n"))
          }
+      }
+   }
+
+   usedEnergies.uniq!()
+   File.open(File.join(embeddingDir, USED_ENERGY_FILE), 'w'){|file|
+      usedEnergies.each_slice(PAGE_SIZE){|page|
+         file.puts(page.map{|parts| parts.join("\t")}.join("\n"))
       }
    }
 end
@@ -133,7 +151,7 @@ def main(args)
 
    energies = getEnergies(sourceDir, datasetDir, embeddingDir, embeddingMethod, distanceType)
    normalizeEnergies(energies)
-   replaceEnergies(sourceDir, outDir, energies)
+   replaceEnergies(sourceDir, outDir, embeddingDir, energies)
 end
 
 def parseArgs(args)

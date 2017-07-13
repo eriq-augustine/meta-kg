@@ -65,7 +65,7 @@ def genData(dataset, embeddingDir, options)
    datasetPath = File.join(Constants::RAW_DATA_PATH, dataset)
    picklePath = File.absolute_path(File.join(embeddingDir, "#{dataset}.pickle"))
 
-   command = "python #{DATA_PROCESSING_SCRIPT} --inDir '#{datasetPath}' --out '#{picklePath}'"
+   command = "python3 #{DATA_PROCESSING_SCRIPT} --inDir '#{datasetPath}' --out '#{picklePath}'"
 
    Util.run(command)
 
@@ -79,7 +79,7 @@ def computeEmbeddings(options, embeddingDir, picklePath)
    options['fin'] = picklePath
    stringOptions = options.to_a().sort().map{|key, val| ["--#{key}", val]}.flatten().map{|option| "'#{option}'"}.join(' ')
 
-   command = "python '#{HOLE_SCRIPT}' #{stringOptions}"
+   command = "python3 '#{HOLE_SCRIPT}' #{stringOptions}"
 
    Util.run(command, outFile, errFile)
 end

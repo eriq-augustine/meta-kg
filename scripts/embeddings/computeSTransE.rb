@@ -47,7 +47,7 @@ TRANSE_WN_SUFFIX = 'unif'
 STANDARD_OPTIONS = {
    'model' => '1',
    'l1' => '1',
-   'init' => '1'
+   'init' => '0'
 }
 
 DATA_FILES_TO_COPY = [
@@ -92,6 +92,7 @@ def copyData(dataset, options)
       initSuffix = TRANSE_FB15K_SUFFIX
    end
 
+=begin  Init is not working well, skip it.
    FileUtils.cp(
       File.join(Constants::EMBEDDINGS_PATH, "TransE_#{dataset}_#{initOptions}", "entity2vec.#{initSuffix}"),
       File.join(options['data'], 'entity2vec.init')
@@ -101,11 +102,12 @@ def copyData(dataset, options)
       File.join(Constants::EMBEDDINGS_PATH, "TransE_#{dataset}_#{initOptions}", "relation2vec.#{initSuffix}"),
       File.join(options['data'], 'relation2vec.init')
    )
+=end
 end
 
 def computeEmbeddings(options)
-   outFile = File.join(options['data'], 'train.txt')
-   errFile = File.join(options['data'], 'train.err')
+   outFile = File.join(options['data'], 'out_train.txt')
+   errFile = File.join(options['data'], 'out_train.err')
 
    # STransE requires a trailing slash (separator).
    options['data'] += File::SEPARATOR

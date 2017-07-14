@@ -1,6 +1,7 @@
 require_relative 'load'
 require_relative 'transE'
 require_relative 'transH'
+require_relative 'stransE'
 require_relative '../constants'
 require_relative '../distance'
 require_relative '../load'
@@ -267,6 +268,11 @@ module Energies
          distanceType = Distance::L1_ID_STRING
       elsif (embeddingDir.include?("distance:#{Distance::L2_ID_INT}"))
          distanceType = Distance::L2_ID_STRING
+      # StransE does it differently.
+      elsif (embeddingDir.include?('STransE') && embeddingDir.include?('l1:1'))
+         distanceType = Distance::L1_ID_STRING
+      elsif (embeddingDir.include?('STransE') && embeddingDir.include?('l1:0'))
+         distanceType = Distance::L2_ID_STRING
       end
 
       return Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
@@ -287,6 +293,11 @@ module Energies
          transHWeights = LoadEmbedding.weights(embeddingDir)
          return proc{|head, tail, relation, headId, tailId, relationId|
             TransH.tripleEnergy(head, tail, relation, transHWeights[relationId])
+         }
+      when STransE::ID_STRING
+         weights1, weights2 = STransE.loadWeights(embeddingDir)
+         return proc{|head, tail, relation, headId, tailId, relationId|
+            TransH.tripleEnergy(distanceType, head, tail, relation, weights1[relationId], weights2[relationId])
          }
       else
          raise "Unknown embedding method: #{embeddingMethod}"

@@ -15,7 +15,7 @@ module Util
             file.puts(stdout)
          }
       end
-      
+
       if (errFile != nil)
          File.open(errFile, 'w'){|file|
             file.puts(stderr)
@@ -23,7 +23,7 @@ module Util
       end
 
       if (status.exitstatus() != 0)
-         raise "Failed to run command: [#{command}]. Exited with status: #{status}" + 
+         raise "Failed to run command: [#{command}]. Exited with status: #{status}" +
                "\n--- Stdout ---\n#{stdout}" +
                "\n--- Stderr ---\n#{stderr}"
       end

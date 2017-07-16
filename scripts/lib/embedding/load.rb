@@ -32,15 +32,31 @@ module LoadEmbedding
    end
 
    def LoadEmbedding.vectors(embeddingDir)
+      entityPath = nil
+      relationPath = nil
+
       # Check if we are workig with unif or bern.
       if (File.exists?(File.join(embeddingDir, ENTITY_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_UNIF)))
          # Unif
          entityPath = File.join(embeddingDir, ENTITY_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_UNIF)
          relationPath = File.join(embeddingDir, RELATION_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_UNIF)
-      else
+      elsif (File.exists?(File.join(embeddingDir, ENTITY_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_BERN)))
          # Bern
          entityPath = File.join(embeddingDir, ENTITY_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_BERN)
          relationPath = File.join(embeddingDir, RELATION_EMBEDDING_BASENAME + '.' + Embedding::PROB_METHOD_BERN)
+      else
+         # Another format used by STransE.
+         Dir.foreach(embeddingDir){|filename|
+            if (filename.end_with?(".#{ENTITY_EMBEDDING_BASENAME}"))
+               entityPath = File.join(embeddingDir, filename)
+            elsif (filename.end_with?(".#{RELATION_EMBEDDING_BASENAME}"))
+               relationPath = File.join(embeddingDir, filename)
+            end
+         }
+
+         if (entityPath == nil && relationPath == nil)
+            raise("Unable to locate entity and relation vector files in: #{embeddingDir}")
+         end
       end
 
       entityEmbeddings = LoadEmbedding.file(entityPath)

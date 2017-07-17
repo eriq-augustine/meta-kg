@@ -24,9 +24,9 @@ def parseStats(dataDir, datasetName)
       file.reverse_each{|line|
          if (match = line.match(/^INFO:EX-KG:\[\d+\] VALID: MRR = #{NUM_REGEX}\/#{NUM_REGEX}, Mean Rank = (#{NUM_REGEX})\/(#{NUM_REGEX}), Hits@10 = (#{NUM_REGEX})\/(#{NUM_REGEX})$/))
             values << match[1]
+            values << (match[3].to_f() / 100.0).round(4)
             values << match[2]
-            values << match[3]
-            values << match[4]
+            values << (match[4].to_f() / 100.0).round(4)
 
             break
          end

@@ -60,6 +60,20 @@ def getOptions(dataset)
    return options
 end
 
+# Copy any data the needs to be.
+def copyData(dataset, embeddingDir)
+   datasetPath = File.join(Constants::RAW_DATA_PATH, dataset)
+
+   # Check for any requested energy calculations.
+   copyFile = ['negative_targets.txt', 'positive_targets.txt']
+   copyFile.each{|filename|
+      path = File.join(datasetPath, filename)
+      if (File.exists?(path))
+         FileUtils.cp(path, embeddingDir)
+      end
+   }
+end
+
 # Returns the path the the pickled data.
 def genData(dataset, embeddingDir, options)
    datasetPath = File.join(Constants::RAW_DATA_PATH, dataset)
@@ -77,6 +91,7 @@ def computeEmbeddings(options, embeddingDir, picklePath)
    errFile = File.join(embeddingDir, 'train.err')
 
    options['fin'] = picklePath
+   options['fout'] = File.join(embeddingDir, "model.pickle")
    stringOptions = options.to_a().sort().map{|key, val| ["--#{key}", val]}.flatten().map{|option| "'#{option}'"}.join(' ')
 
    command = "python3 '#{HOLE_SCRIPT}' #{stringOptions}"
@@ -102,6 +117,7 @@ def processDataset(dataset)
 
    FileUtils.mkdir_p(embeddingDir)
 
+   copyData(dataset, embeddingDir)
    picklePath = genData(dataset, embeddingDir, options)
    computeEmbeddings(options, embeddingDir, picklePath)
 

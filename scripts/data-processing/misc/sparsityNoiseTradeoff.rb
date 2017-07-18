@@ -14,7 +14,7 @@ MAX_REMOVAL_TRIPLES = 300000
 REMOVAL_TRIPLES_STEP = 50000
 
 # Min corruption is alwasy 0.0.
-MAX_CORRUPTION = 0.50
+MAX_CORRUPTION = 0.90
 CORRUPTION_STEP = 0.10
 
 # We will keep track of the triples that have been removed from the dataset.

@@ -1,5 +1,6 @@
 require_relative '../distance'
 
+require 'csv'
 require 'matrix'
 
 module STransE
@@ -49,38 +50,54 @@ module STransE
          end
       }
 
-      return STransE.loadWeightFile(weight1Path), STransE.loadWeightFile(weight2Path)
+      if (weight1Path == nil || weight2Path == nil)
+         raise("Unable to find weight files for STransE.")
+      end
+
+      # Get the embedding size.
+      match = embeddingDir.match(/,size:(\d+)\]$/)
+      if (match == nil)
+         raise("Unable to discover embedding size from embessing path for STransE.")
+      end
+      embeddingSize = match[1].to_i()
+
+      return STransE.loadWeightFile(weight1Path, embeddingSize), STransE.loadWeightFile(weight2Path, embeddingSize)
    end
 
    # Weights are 3d.
    # Each line holds one matrix.
    # We will just infer matrix size from row length.
    # [relation][entity][entity]
-   def STransE.loadWeightFile(path)
+   def STransE.loadWeightFile(path, embeddingSize)
       weights = []
+      lineno = 0
 
-      File.open(path, 'r'){|file|
-         file.each{|line|
-            parts = line.strip().split("\t").map{|part| part.strip().to_f()}
+      # TEST
+      puts "Loading: #{path}"
 
-            size = Math.sqrt(parts.size())
-            if (size != size.to_i())
-               raise("Weight matrix not square: #{path}[#{file.lineno}]")
-            end
-            size = size.to_i()
+      currentMatrix = []
+      CSV.foreach(path, {:col_sep => "\t", :converters => :numeric, :skip_blanks => true}){|line|
+         lineno += 1
 
-            matrix = []
-            for i in 0...size
-               row = []
-               for j in 0...size
-                  row << parts[i * size + j]
-               end
-               matrix << row
-            end
+         # Sometimes STransE puts out an extra tab at the end of the line.
+         if (line[-1] == nil)
+            line.pop()
+         end
 
-            weights << matrix
-         }
+         currentMatrix << line
+
+         if (lineno % embeddingSize == 0)
+            weights << currentMatrix
+            currentMatrix = []
+
+            # TEST
+            puts "Adding matrix (#{lineno} / #{embeddingSize}: #{lineno / embeddingSize})"
+         end
       }
+
+      if (currentMatrix.size() != 0)
+         raise("Have leftover rows  (#{currentMatric.size()}).")
+      end
 
       return weights
    end

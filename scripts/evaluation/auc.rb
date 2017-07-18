@@ -45,8 +45,14 @@ end
 def loadEnergies(dataDir, embeddingDir, filename, fetchTriplesFunction)
    energiesPath = File.join(embeddingDir, filename)
    if (File.exists?(energiesPath))
+      # TEST
+      puts "Found precomputed energies: #{energiesPath}"
+
       return Load.tripleEnergies(energiesPath, false)
    end
+
+   # TEST
+   puts "No precomputed energies found, calculating"
 
    return calcEvalEnergies(dataDir, embeddingDir, filename, fetchTriplesFunction)
 end

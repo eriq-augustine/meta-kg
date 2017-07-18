@@ -122,12 +122,18 @@ module Energies
          raise("A block is required")
       end
 
+      # TEST
+      puts "Coputing the energies for #{triples.size()} triples"
+
       energyMethod = nil
       if (embeddingMethod == nil && distanceType == nil)
          energyMethod = Energies.getEnergyMethodFromPath(embeddingDir)
       else
          energyMethod = Energies.getEnergyMethod(embeddingMethod, distanceType, embeddingDir)
       end
+
+      # TEST
+      puts "Got the energy method"
 
       entityMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_ENTITY_MAPPING_FILENAME), false)
       relationMapping = Load.idMapping(File.join(datasetDir, Constants::RAW_RELATION_MAPPING_FILENAME), false)
@@ -295,7 +301,14 @@ module Energies
             TransH.tripleEnergy(head, tail, relation, transHWeights[relationId])
          }
       when STransE::ID_STRING
+         # TEST
+         puts "Getting STransE energy method"
+
          weights1, weights2 = STransE.loadWeights(embeddingDir)
+
+         # TEST
+         puts "Loaded weights"
+
          return proc{|head, tail, relation, headId, tailId, relationId|
             TransH.tripleEnergy(distanceType, head, tail, relation, weights1[relationId], weights2[relationId])
          }

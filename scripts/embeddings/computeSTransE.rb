@@ -137,7 +137,6 @@ def processDataset(dataset)
    puts "Processing [#{options['data']}]"
 
    FileUtils.mkdir_p(options['data'])
-
    copyData(dataset, options)
 
    computeEmbeddings(options)

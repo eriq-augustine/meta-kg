@@ -18,8 +18,6 @@ module STransE
       head = Matrix.column_vector(head)
       tail = Matrix.column_vector(tail)
       relation = Matrix.column_vector(relation)
-      weight1 = Matrix.rows(weight1)
-      weight2 = Matrix.rows(weight2)
 
       res = (weight1 * head) + relation - (weight2 * tail)
       if (distanceType == Distance::L1_ID_STRING)
@@ -38,6 +36,7 @@ module STransE
       return true, energy
    end
 
+   # Returned objects will be arrays of matrices.
    def STransE.loadWeights(embeddingDir)
       weight1Path = nil
       weight2Path = nil
@@ -67,13 +66,10 @@ module STransE
    # Weights are 3d.
    # Each line holds one matrix.
    # We will just infer matrix size from row length.
-   # [relation][entity][entity]
+   # [relation] = Matrix(entity, entity)
    def STransE.loadWeightFile(path, embeddingSize)
       weights = []
       lineno = 0
-
-      # TEST
-      puts "Loading: #{path}"
 
       currentMatrix = []
       CSV.foreach(path, {:col_sep => "\t", :converters => :numeric, :skip_blanks => true}){|line|
@@ -87,11 +83,8 @@ module STransE
          currentMatrix << line
 
          if (lineno % embeddingSize == 0)
-            weights << currentMatrix
+            weights << Matrix.rows(currentMatrix)
             currentMatrix = []
-
-            # TEST
-            puts "Adding matrix (#{lineno} / #{embeddingSize}: #{lineno / embeddingSize})"
          end
       }
 

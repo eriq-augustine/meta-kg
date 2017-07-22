@@ -13,7 +13,7 @@ module LoadEmbedding
 
       File.open(path, 'r'){|file|
          file.each{|line|
-            embeddings << line.split("\t").map{|part| part.strip().to_f()}
+            embeddings << line.strip().split("\t").map{|part| part.strip().to_f()}
          }
       }
 
